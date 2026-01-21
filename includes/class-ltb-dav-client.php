@@ -354,117 +354,37 @@ class LTB_DAV_Client {
 		
 		$start_hour = (int) $start_obj->format('G');
 		
-		// ROBUSTE LÖSUNG: Hole ALLE Events für den gesamten Tag und finde alle FREI-Events, die überlappen
-		error_log('LTB DAV: Suche nach FREI-Events für ' . $date . ' ab Stunde ' . $start_hour . ' (Dauer: ' . $duration . ' Stunden)');
+		error_log('LTB DAV: === BUCHUNG STARTEN ===');
+		error_log('LTB DAV: Datum: ' . $date . ', Start: ' . $start_time . ', Dauer: ' . $duration . ' Stunden');
 		
-		// Hole ALLE Events für den Tag (nicht nur für einzelne Stunden)
+		// SCHRITT 1: ZUERST alle betroffenen FREI-Events löschen
+		error_log('LTB DAV: SCHRITT 1 - Lösche ALLE FREI-Events für den Buchungszeitraum');
+		
 		$all_free_events = $this->find_all_free_events_for_date($date, $start_hour, $duration);
+		error_log('LTB DAV: Gefundene FREI-Events zum Löschen: ' . count($all_free_events));
 		
-		error_log('LTB DAV: Gefundene FREI-Events: ' . count($all_free_events));
-		
-		// Wenn FREI-Events gefunden wurden, aktualisiere das erste und lösche die restlichen
-		if (!empty($all_free_events)) {
-			$existing_free_event = $all_free_events[0]; // Nimm das erste Event
-			error_log('LTB DAV: ' . count($all_free_events) . ' FREI-Event(s) gefunden. Aktualisiere erstes Event: ' . $existing_free_event['url']);
-		
-			if ($existing_free_event && !empty($existing_free_event['url'])) {
-				// Bestehenden FREI-Event aktualisieren
-				error_log('LTB DAV: FREI-Event gefunden! URL: ' . $existing_free_event['url'] . ', UID: ' . (isset($existing_free_event['uid']) ? $existing_free_event['uid'] : 'nicht gefunden'));
-			
-			// UID aus bestehendem Event übernehmen (wichtig für Update!)
-			$uid = isset($existing_free_event['uid']) && !empty($existing_free_event['uid']) ? $existing_free_event['uid'] : 'ltb-' . time() . '-' . rand(1000, 9999) . '@lasertagpro.at';
-			$dtstart = $start_obj->format('Ymd\THis');
-			$dtend = $end_obj->format('Ymd\THis');
-			$dtstamp = date('Ymd\THis\Z');
-			
-			$ical = "BEGIN:VCALENDAR\r\n";
-			$ical .= "VERSION:2.0\r\n";
-			$ical .= "PRODID:-//LaserTagPro//Booking System//EN\r\n";
-			$ical .= "BEGIN:VEVENT\r\n";
-			$ical .= "UID:" . $uid . "\r\n";
-			$ical .= "DTSTAMP:" . $dtstamp . "\r\n";
-			$ical .= "DTSTART:" . $dtstart . "\r\n";
-			$ical .= "DTEND:" . $dtend . "\r\n";
-			$ical .= "SUMMARY:" . $summary . "\r\n";
-			$ical .= "STATUS:CONFIRMED\r\n";
-			$ical .= "END:VEVENT\r\n";
-			$ical .= "END:VCALENDAR\r\n";
-			
-			error_log('LTB DAV: Sende PUT-Request an: ' . $existing_free_event['url']);
-			error_log('LTB DAV: iCal-Body (erste 200 Zeichen): ' . substr($ical, 0, 200));
-			
-			// PUT Request zum Aktualisieren des bestehenden Events
-			$args = array(
-				'method' => 'PUT',
-				'headers' => array(
-					'Content-Type' => 'text/calendar; charset=utf-8',
-				),
-				'body' => $ical,
-				'timeout' => 30,
-			);
-			
-			$response = wp_remote_request($existing_free_event['url'], $this->add_auth($args));
-			
-			if (is_wp_error($response)) {
-				error_log('LTB DAV Update Error: ' . $response->get_error_message());
-				// Fallback: Versuche zu löschen und neu zu erstellen
-				error_log('LTB DAV: Fallback - lösche FREI-Event und erstelle neues');
-				$this->delete_free_slot($date, $start_hour);
-			} else {
-				$code = wp_remote_retrieve_response_code($response);
-				error_log('LTB DAV: PUT-Response Code: ' . $code);
-				
-				if ($code >= 200 && $code < 300) {
-					error_log('LTB DAV: Event erfolgreich aktualisiert: ' . $existing_free_event['url']);
-					
-					// WICHTIG: Lösche ALLE anderen gefundenen FREI-Events SOFORT
-					$updated_url = $existing_free_event['url'];
-					$deleted_count = 0;
-					foreach ($all_free_events as $free_event) {
-						if ($free_event['url'] !== $updated_url) {
-							error_log('LTB DAV: Lösche zusätzliches FREI-Event: ' . $free_event['url']);
-							if ($this->delete_event_by_url($free_event['url'])) {
-								$deleted_count++;
-							}
-						}
-					}
-					error_log('LTB DAV: ' . $deleted_count . ' zusätzliche FREI-Event(s) gelöscht');
-					
-					// Zusätzlich: Lösche alle weiteren FREI-Events für alle betroffenen Stunden (falls welche übersehen wurden)
-					for ($i = 0; $i < $duration; $i++) {
-						$check_hour = $start_hour + $i;
-						error_log('LTB DAV: Lösche alle weiteren FREI-Events für Stunde ' . $check_hour . ' (außer aktualisiertem)');
-						$deleted_in_hour = $this->delete_all_free_slots_for_hour($date, $check_hour, $updated_url);
-						if ($deleted_in_hour > 0) {
-							error_log('LTB DAV: ' . $deleted_in_hour . ' weitere FREI-Event(s) für Stunde ' . $check_hour . ' gelöscht');
-						}
-					}
-					
-					return true;
+		$deleted_count = 0;
+		foreach ($all_free_events as $free_event) {
+			if (!empty($free_event['url'])) {
+				error_log('LTB DAV: Lösche FREI-Event: ' . $free_event['url']);
+				if ($this->delete_event_by_url($free_event['url'])) {
+					$deleted_count++;
+					error_log('LTB DAV: FREI-Event erfolgreich gelöscht');
 				} else {
-					$response_body = wp_remote_retrieve_body($response);
-					error_log('LTB DAV Update Error: HTTP ' . $code . ', Body: ' . substr($response_body, 0, 500));
-					// Fallback: Versuche zu löschen und neu zu erstellen
-					error_log('LTB DAV: Fallback - lösche FREI-Event und erstelle neues');
-					$this->delete_free_slot($date, $start_hour);
+					error_log('LTB DAV: WARNUNG - FREI-Event konnte nicht gelöscht werden');
 				}
 			}
-			} else {
-				error_log('LTB DAV: FREI-Event gefunden, aber URL ist leer');
-			}
-		} else {
-			error_log('LTB DAV: Kein FREI-Event gefunden für alle betroffenen Stunden');
 		}
+		error_log('LTB DAV: ' . $deleted_count . ' von ' . count($all_free_events) . ' FREI-Event(s) gelöscht');
 		
-		// Kein FREI-Event gefunden oder Update fehlgeschlagen - lösche alle betroffenen FREI-Events und erstelle neues
-		error_log('LTB DAV: Lösche alle betroffenen FREI-Events und erstelle neues BELEGT-Event');
-		
-		// Alle betroffenen FREI-Events löschen (für jede Stunde)
+		// Zusätzlich: Lösche auch über die Stunden-Methode (falls Events übersehen wurden)
 		for ($i = 0; $i < $duration; $i++) {
 			$check_hour = $start_hour + $i;
-			error_log('LTB DAV: Lösche FREI-Event für Stunde ' . $check_hour);
 			$this->delete_free_slot($date, $check_hour);
 		}
+		
+		// SCHRITT 2: Neues BELEGT-Event erstellen
+		error_log('LTB DAV: SCHRITT 2 - Erstelle neues BELEGT-Event');
 		
 		// iCal-Event erstellen
 		$uid = 'ltb-' . time() . '-' . rand(1000, 9999) . '@lasertagpro.at';
@@ -581,17 +501,38 @@ class LTB_DAV_Client {
 
 		// XML parsen
 		libxml_use_internal_errors(true);
+		
+		// DEBUG: Zeige die ersten 2000 Zeichen der XML-Antwort
+		error_log('LTB DAV DEBUG XML-Antwort (erste 2000 Zeichen): ' . substr($body, 0, 2000));
+		
 		$xml = simplexml_load_string($body);
 		
 		if ($xml === false) {
+			$errors = libxml_get_errors();
+			foreach ($errors as $error) {
+				error_log('LTB DAV XML Parse Error: ' . $error->message);
+			}
+			libxml_clear_errors();
 			error_log('LTB DAV: Could not parse XML for find_all_free_events_for_date');
 			return array();
 		}
 
+		// Registriere alle möglichen Namespaces
 		$xml->registerXPathNamespace('d', 'DAV:');
+		$xml->registerXPathNamespace('D', 'DAV:');
 		$xml->registerXPathNamespace('c', 'urn:ietf:params:xml:ns:caldav');
+		$xml->registerXPathNamespace('C', 'urn:ietf:params:xml:ns:caldav');
+		$xml->registerXPathNamespace('cal', 'urn:ietf:params:xml:ns:caldav');
 
+		// Versuche verschiedene XPath-Varianten
 		$responses = $xml->xpath('//d:response');
+		if (empty($responses)) {
+			$responses = $xml->xpath('//D:response');
+		}
+		if (empty($responses)) {
+			$responses = $xml->xpath('//*[local-name()="response"]');
+		}
+		
 		$free_events = array();
 		
 		error_log('LTB DAV find_all_free_events_for_date: Gefundene Responses: ' . count($responses));
@@ -601,69 +542,130 @@ class LTB_DAV_Client {
 		$booking_end = new DateTime($date . ' ' . $end_time_str);
 		
 		foreach ($responses as $response) {
+			// Versuche verschiedene Namespace-Varianten für href
 			$href_elements = $response->xpath('.//d:href');
+			if (empty($href_elements)) {
+				$href_elements = $response->xpath('.//D:href');
+			}
+			if (empty($href_elements)) {
+				$href_elements = $response->xpath('.//*[local-name()="href"]');
+			}
 			$href = !empty($href_elements) ? (string) $href_elements[0] : '';
 			
+			// ETag extrahieren (wichtig für SOGo Updates!)
+			$etag_elements = $response->xpath('.//d:getetag');
+			if (empty($etag_elements)) {
+				$etag_elements = $response->xpath('.//D:getetag');
+			}
+			if (empty($etag_elements)) {
+				$etag_elements = $response->xpath('.//*[local-name()="getetag"]');
+			}
+			$etag = !empty($etag_elements) ? (string) $etag_elements[0] : '';
+			
+			// Versuche verschiedene Namespace-Varianten für calendar-data
 			$calendar_data = $response->xpath('.//c:calendar-data');
+			if (empty($calendar_data)) {
+				$calendar_data = $response->xpath('.//C:calendar-data');
+			}
+			if (empty($calendar_data)) {
+				$calendar_data = $response->xpath('.//cal:calendar-data');
+			}
+			if (empty($calendar_data)) {
+				$calendar_data = $response->xpath('.//*[local-name()="calendar-data"]');
+			}
 			
 			if (empty($calendar_data)) {
+				error_log('LTB DAV DEBUG: Response ohne calendar-data, href: ' . $href);
 				continue;
 			}
 			
 			$ical = (string) $calendar_data[0];
 			
+			// Extrahiere nur den VEVENT-Block (nicht VTIMEZONE)
+			$vevent_block = '';
+			if (preg_match('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $vevent_match)) {
+				$vevent_block = $vevent_match[1];
+			}
+			
+			// Summary extrahieren für Debug (aus VEVENT)
+			$summary = '';
+			if (preg_match('/SUMMARY:([^\r\n]+)/', $vevent_block, $summary_matches)) {
+				$summary = trim($summary_matches[1]);
+			}
+			
+			// Event-Zeiten extrahieren für Debug (aus VEVENT, nicht VTIMEZONE!)
+			$event_start_str = '';
+			$event_end_str = '';
+			if (preg_match('/DTSTART[^:]*:([0-9TZ]+)/', $vevent_block, $dtstart)) {
+				$event_start_str = $dtstart[1];
+			}
+			if (preg_match('/DTEND[^:]*:([0-9TZ]+)/', $vevent_block, $dtend)) {
+				$event_end_str = $dtend[1];
+			}
+			
+			error_log('LTB DAV DEBUG: Event gefunden - Summary: "' . $summary . '", Start: ' . $event_start_str . ', End: ' . $event_end_str . ', href: ' . $href);
+			
+			$summary_upper = strtoupper($summary);
+			
 			// Prüfen ob "FREI" im Summary steht
-			if (stripos($ical, 'SUMMARY:') !== false) {
-				if (preg_match('/SUMMARY:([^\r\n]+)/', $ical, $summary_matches)) {
-					$summary = trim($summary_matches[1]);
-					$summary_upper = strtoupper($summary);
-					
-					// Wenn "FREI" im Summary steht, prüfe ob es mit dem Buchungszeitraum überlappt
-					if (strpos($summary_upper, 'FREI') !== false || strpos($summary_upper, 'FREE') !== false || strpos($summary_upper, 'AVAILABLE') !== false) {
-						// Event-Zeiten extrahieren
-						$event_start = null;
-						$event_end = null;
-						
-						if (preg_match('/DTSTART[^:]*:([0-9TZ]+)/', $ical, $dtstart)) {
-							$event_start = new DateTime($this->parse_ical_datetime($dtstart[1]));
-						}
-						if (preg_match('/DTEND[^:]*:([0-9TZ]+)/', $ical, $dtend)) {
-							$event_end = new DateTime($this->parse_ical_datetime($dtend[1]));
-						}
-						
-						// Prüfe ob Event mit Buchungszeitraum überlappt
-						if ($event_start && $event_end) {
-							if ($event_start < $booking_end && $event_end > $booking_start) {
-								// Event-URL aus href extrahieren
-								$event_url = '';
-								
-								if (!empty($href)) {
-									if (strpos($href, 'http') === 0) {
-										$event_url = $href;
-									} else {
-										$href_clean = ltrim($href, '/');
-										$dav_url_clean = rtrim($this->dav_url, '/');
-										$event_url = $dav_url_clean . '/' . $href_clean;
-									}
-								}
-								
-								// UID extrahieren
-								$uid = '';
-								if (preg_match('/UID:([^\r\n]+)/', $ical, $uid_matches)) {
-									$uid = trim($uid_matches[1]);
-								}
-								
-								if (!empty($event_url)) {
-									error_log('LTB DAV: FREI-Event gefunden, das überlappt: ' . $event_url . ' (Zeit: ' . $event_start->format('H:i') . '-' . $event_end->format('H:i') . ')');
-									$free_events[] = array(
-										'url' => $event_url,
-										'uid' => $uid,
-									);
-								}
-							}
-						}
-					}
+			$is_free = (strpos($summary_upper, 'FREI') !== false || strpos($summary_upper, 'FREE') !== false || strpos($summary_upper, 'AVAILABLE') !== false);
+			
+			if (!$is_free) {
+				error_log('LTB DAV DEBUG: Event ist NICHT FREI (Summary enthält weder FREI, FREE noch AVAILABLE)');
+				continue;
+			}
+			
+			// Event-Zeiten parsen
+			$event_start = null;
+			$event_end = null;
+			
+			if (!empty($event_start_str)) {
+				$parsed_start = $this->parse_ical_datetime($event_start_str);
+				if (!empty($parsed_start)) {
+					$event_start = new DateTime($parsed_start);
 				}
+			}
+			if (!empty($event_end_str)) {
+				$parsed_end = $this->parse_ical_datetime($event_end_str);
+				if (!empty($parsed_end)) {
+					$event_end = new DateTime($parsed_end);
+				}
+			}
+			
+			if (!$event_start || !$event_end) {
+				error_log('LTB DAV DEBUG: Event-Zeiten konnten nicht geparst werden');
+				continue;
+			}
+			
+			error_log('LTB DAV DEBUG: Event-Zeiten geparst - Start: ' . $event_start->format('Y-m-d H:i:s') . ', End: ' . $event_end->format('Y-m-d H:i:s'));
+			error_log('LTB DAV DEBUG: Buchungszeitraum - Start: ' . $booking_start->format('Y-m-d H:i:s') . ', End: ' . $booking_end->format('Y-m-d H:i:s'));
+			
+			// Prüfe ob Event mit Buchungszeitraum überlappt
+			$overlaps = ($event_start < $booking_end && $event_end > $booking_start);
+			
+			if (!$overlaps) {
+				error_log('LTB DAV DEBUG: Event überlappt NICHT mit Buchungszeitraum');
+				continue;
+			}
+			
+			// Event-URL aus href extrahieren (SOGo-kompatibel)
+			$event_url = $this->build_event_url_from_href($href);
+			
+			// UID extrahieren
+			$uid = '';
+			if (preg_match('/UID:([^\r\n]+)/', $ical, $uid_matches)) {
+				$uid = trim($uid_matches[1]);
+			}
+			
+			if (!empty($event_url)) {
+				error_log('LTB DAV: FREI-Event gefunden, das überlappt: ' . $event_url . ' (Zeit: ' . $event_start->format('H:i') . '-' . $event_end->format('H:i') . ', ETag: ' . $etag . ')');
+				$free_events[] = array(
+					'url' => $event_url,
+					'uid' => $uid,
+					'etag' => $etag,
+				);
+			} else {
+				error_log('LTB DAV DEBUG: Event-URL konnte nicht erstellt werden aus href: ' . $href);
 			}
 		}
 		
@@ -773,23 +775,16 @@ class LTB_DAV_Client {
 					
 					// Wenn "FREI" im Summary steht, Event-Info zurückgeben
 					if (strpos($summary_upper, 'FREI') !== false || strpos($summary_upper, 'FREE') !== false || strpos($summary_upper, 'AVAILABLE') !== false) {
-						// Event-URL aus href extrahieren
-						$event_url = '';
+						// Event-URL aus href extrahieren (SOGo-kompatibel)
+						$event_url = $this->build_event_url_from_href($href);
 						
-						if (!empty($href)) {
-							// href kann absolut oder relativ sein
-							if (strpos($href, 'http') === 0) {
-								$event_url = $href;
-							} else {
-								// href ist relativ, muss zur DAV-URL hinzugefügt werden
-								// Entferne führende Slashes von href, da DAV-URL bereits mit / endet
-								$href_clean = ltrim($href, '/');
-								$dav_url_clean = rtrim($this->dav_url, '/');
-								$event_url = $dav_url_clean . '/' . $href_clean;
-							}
-						} else {
+						if (empty($event_url)) {
 							error_log('LTB DAV find_free_event: WARNUNG - href ist leer!');
 						}
+						
+						// ETag extrahieren
+						$etag_elements = $response->xpath('.//d:getetag');
+						$etag = !empty($etag_elements) ? (string) $etag_elements[0] : '';
 						
 						// UID extrahieren
 						$uid = '';
@@ -798,10 +793,11 @@ class LTB_DAV_Client {
 						}
 						
 						if (!empty($event_url)) {
-							error_log('LTB DAV find_free_event: FREI-Event gefunden! URL: ' . $event_url . ', UID: ' . ($uid ? $uid : 'nicht gefunden') . ', Summary: ' . $summary);
+							error_log('LTB DAV find_free_event: FREI-Event gefunden! URL: ' . $event_url . ', UID: ' . ($uid ? $uid : 'nicht gefunden') . ', ETag: ' . $etag . ', Summary: ' . $summary);
 							return array(
 								'url' => $event_url,
 								'uid' => $uid,
+								'etag' => $etag,
 							);
 						} else {
 							error_log('LTB DAV find_free_event: FREI-Event gefunden, aber URL ist leer! href: ' . $href);
@@ -944,18 +940,8 @@ class LTB_DAV_Client {
 					$summary_upper = strtoupper($summary);
 					
 					if (strpos($summary_upper, 'FREI') !== false || strpos($summary_upper, 'FREE') !== false || strpos($summary_upper, 'AVAILABLE') !== false) {
-						// Event-URL aus href extrahieren
-						$event_url = '';
-						
-						if (!empty($href)) {
-							if (strpos($href, 'http') === 0) {
-								$event_url = $href;
-							} else {
-								$href_clean = ltrim($href, '/');
-								$dav_url_clean = rtrim($this->dav_url, '/');
-								$event_url = $dav_url_clean . '/' . $href_clean;
-							}
-						}
+						// Event-URL aus href extrahieren (SOGo-kompatibel)
+						$event_url = $this->build_event_url_from_href($href);
 						
 						// Nur löschen, wenn es nicht die ausgeschlossene URL ist
 						if (!empty($event_url) && $event_url !== $exclude_url) {
@@ -1084,61 +1070,12 @@ class LTB_DAV_Client {
 					
 					// Wenn "FREI" im Summary steht, Event löschen
 					if (strpos($summary_upper, 'FREI') !== false || strpos($summary_upper, 'FREE') !== false || strpos($summary_upper, 'AVAILABLE') !== false) {
-						// Event-URL aus href extrahieren
-						$event_url = '';
+						// Event-URL aus href extrahieren (SOGo-kompatibel)
+						$event_url = $this->build_event_url_from_href($href);
 						
-						if (!empty($href)) {
-							// href kann absolut oder relativ sein
-							if (strpos($href, 'http') === 0) {
-								$event_url = $href;
-							} else {
-								// href ist relativ, muss zur DAV-URL hinzugefügt werden
-								// href könnte bereits den vollständigen Pfad enthalten
-								$event_url = rtrim($this->dav_url, '/') . '/' . ltrim($href, '/');
-							}
-						} else {
-							// Fallback: Event-URL generieren (versuche verschiedene Formate basierend auf Summary)
-							// Extrahiere Zeit aus Summary (z.B. "18:00 FREI" -> "18:00")
-							$time_from_summary = '';
-							if (preg_match('/(\d{1,2}):(\d{2})/', $summary, $time_matches)) {
-								$time_from_summary = str_pad($time_matches[1], 2, '0', STR_PAD_LEFT) . $time_matches[2];
-							}
-							
-							$possible_filenames = array();
-							if ($time_from_summary) {
-								$possible_filenames[] = $time_from_summary . ' FREI.ics';
-								$possible_filenames[] = 'FREI ' . $time_from_summary . '.ics';
-								$possible_filenames[] = $date . '-' . $time_from_summary . '-FREI.ics';
-							}
-							$possible_filenames[] = $hour_str . '00 FREI.ics';
-							$possible_filenames[] = 'FREI ' . $hour_str . ':00.ics';
-							$possible_filenames[] = $date . '-' . $hour_str . '00-FREI.ics';
-							$possible_filenames[] = 'ltb-' . $date . '-' . $hour_str . '00.ics';
-							
-							// Versuche jedes Format
-							foreach ($possible_filenames as $filename) {
-								$test_url = rtrim($this->dav_url, '/') . '/' . $filename;
-								// Prüfen ob Event existiert (HEAD Request)
-								$head_args = array(
-									'method' => 'HEAD',
-									'timeout' => 10,
-								);
-								$head_response = wp_remote_request($test_url, $this->add_auth($head_args));
-								if (!is_wp_error($head_response)) {
-									$head_code = wp_remote_retrieve_response_code($head_response);
-									if ($head_code >= 200 && $head_code < 300) {
-										$event_url = $test_url;
-										error_log('LTB DAV: Event-URL gefunden via HEAD: ' . $event_url);
-										break;
-									}
-								}
-							}
-							
-							// Wenn immer noch keine URL, verwende Standard-Format
-							if (empty($event_url)) {
-								// Versuche direkt mit verschiedenen Formaten zu löschen
-								$event_url = rtrim($this->dav_url, '/') . '/' . $hour_str . ':00 FREI.ics';
-							}
+						if (empty($event_url)) {
+							error_log('LTB DAV: WARNUNG - href ist leer, kann Event nicht löschen');
+							continue;
 						}
 						
 						error_log('LTB DAV: Versuche FREI-Slot zu löschen: ' . $event_url);
@@ -1156,32 +1093,8 @@ class LTB_DAV_Client {
 							if ($delete_code >= 200 && $delete_code < 300) {
 								error_log('LTB DAV: FREI-Slot erfolgreich gelöscht: ' . $event_url . ' (Summary: ' . $summary . ')');
 								$deleted_count++;
-								continue; // Weiter mit nächstem Event
 							} else {
 								error_log('LTB DAV: Delete Free Slot HTTP ' . $delete_code . ' für: ' . $event_url);
-								// Versuche alternative URL-Formate
-								$alt_urls = array();
-								if ($time_from_summary) {
-									$alt_urls[] = rtrim($this->dav_url, '/') . '/' . $time_from_summary . ' FREI.ics';
-									$alt_urls[] = rtrim($this->dav_url, '/') . '/' . 'FREI ' . $time_from_summary . '.ics';
-								}
-								$alt_urls[] = rtrim($this->dav_url, '/') . '/' . $hour_str . ':00 FREI.ics';
-								$alt_urls[] = rtrim($this->dav_url, '/') . '/' . 'FREI ' . $hour_str . ':00.ics';
-								$alt_urls[] = rtrim($this->dav_url, '/') . '/' . $date . '-' . $hour_str . '00-FREI.ics';
-								
-								foreach ($alt_urls as $alt_url) {
-									if ($alt_url === $event_url) continue; // Bereits versucht
-									
-									$alt_response = wp_remote_request($alt_url, $this->add_auth($delete_args));
-									if (!is_wp_error($alt_response)) {
-										$alt_code = wp_remote_retrieve_response_code($alt_response);
-										if ($alt_code >= 200 && $alt_code < 300) {
-											error_log('LTB DAV: FREI-Slot gelöscht mit alternativer URL: ' . $alt_url);
-											$deleted_count++;
-											break;
-										}
-									}
-								}
 							}
 						} else {
 							error_log('LTB DAV: Delete Free Slot Error: ' . $delete_response->get_error_message());
@@ -1198,6 +1111,40 @@ class LTB_DAV_Client {
 	}
 
 	/**
+	 * Event-URL aus href konstruieren (SOGo-kompatibel)
+	 *
+	 * @param string $href href aus der CalDAV-Antwort
+	 * @return string Vollständige Event-URL
+	 */
+	private function build_event_url_from_href($href) {
+		if (empty($href)) {
+			return '';
+		}
+		
+		// Wenn href bereits absolut ist
+		if (strpos($href, 'http') === 0) {
+			return $href;
+		}
+		
+		// SOGo gibt oft relative Pfade zurück wie "/SOGo/dav/user/Calendar/personal/event.ics"
+		// Wir müssen die Basis-URL aus der konfigurierten DAV-URL extrahieren
+		$parsed_dav = parse_url($this->dav_url);
+		$base_url = $parsed_dav['scheme'] . '://' . $parsed_dav['host'];
+		if (isset($parsed_dav['port'])) {
+			$base_url .= ':' . $parsed_dav['port'];
+		}
+		
+		// href kann vollständiger Pfad sein oder nur Dateiname
+		if (strpos($href, '/') === 0) {
+			// Vollständiger Pfad (z.B. /SOGo/dav/user/Calendar/personal/event.ics)
+			return $base_url . $href;
+		} else {
+			// Nur Dateiname - an DAV-URL anhängen
+			return rtrim($this->dav_url, '/') . '/' . ltrim($href, '/');
+		}
+	}
+
+	/**
 	 * Authentifizierung zu Request-Args hinzufügen
 	 *
 	 * @param array $args Request-Args
@@ -1208,4 +1155,5 @@ class LTB_DAV_Client {
 		return $args;
 	}
 }
+
 

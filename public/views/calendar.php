@@ -23,7 +23,6 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 				<span class="ltb-player-count" id="ltb-player-count"><?php echo esc_html($min_players); ?></span>
 				<button type="button" class="ltb-btn-plus" aria-label="<?php echo esc_attr__('Mehr Spieler', 'lasertagpro-buchung'); ?>">+</button>
 			</div>
-			<p class="ltb-price-hint"><?php echo esc_html__('Startet ab €16.90 pro Spieler', 'lasertagpro-buchung'); ?></p>
 			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="2"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
 		</div>
 
@@ -32,41 +31,31 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 			<h2 class="ltb-step-title">2. <?php echo esc_html__('Spielmodus wählen', 'lasertagpro-buchung'); ?></h2>
 			<div class="ltb-game-modes">
 				<?php foreach ($game_modes as $mode): ?>
-					<div class="ltb-game-mode-card" data-mode="<?php echo esc_attr($mode->name); ?>" data-is-private="<?php echo esc_attr($mode->is_private); ?>">
+					<div class="ltb-game-mode-card" data-mode="<?php echo esc_attr($mode->name); ?>" data-is-private="0">
 						<h3><?php echo esc_html($mode->name); ?></h3>
 						<p class="ltb-mode-description"><?php echo esc_html($mode->description); ?></p>
-						<?php if ($mode->is_private): ?>
-							<div class="ltb-mode-pricing">
-								<span class="ltb-pricing-label"><?php echo esc_html__('MO-DO:', 'lasertagpro-buchung'); ?></span>
-								<span class="ltb-pricing-value">€+<?php echo esc_html(number_format($mode->private_game_extra_mo_do, 2, ',', '.')); ?></span>
-								<br>
-								<span class="ltb-pricing-label"><?php echo esc_html__('FR-SO:', 'lasertagpro-buchung'); ?></span>
-								<span class="ltb-pricing-value">€+<?php echo esc_html(number_format($mode->private_game_extra_fr_so, 2, ',', '.')); ?></span>
-							</div>
-						<?php else: ?>
-							<div class="ltb-mode-pricing">
-								<span class="ltb-pricing-value ltb-free"><?php echo esc_html__('Kostenlos', 'lasertagpro-buchung'); ?></span>
-							</div>
-						<?php endif; ?>
+						<div class="ltb-mode-pricing">
+							<span class="ltb-pricing-value">€<?php echo esc_html(number_format($mode->price, 2, ',', '.')); ?></span>
+							<span class="ltb-pricing-label"><?php echo esc_html__('pro Person/Stunde', 'lasertagpro-buchung'); ?></span>
+						</div>
 						<button type="button" class="ltb-mode-select-btn"><?php echo esc_html__('Auswählen', 'lasertagpro-buchung'); ?></button>
 					</div>
 				<?php endforeach; ?>
 			</div>
+			<p class="ltb-mode-hint"><?php echo esc_html__('1 Stunde = 3 Runden á 15 Minuten', 'lasertagpro-buchung'); ?></p>
 			<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="1"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
 			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="3" style="display: none;"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
 		</div>
 
-		<!-- Schritt 3: Buchungsdauer -->
+		<!-- Schritt 3: Buchungsdauer (nur 1 Stunde möglich) -->
 		<div class="ltb-step ltb-step-3" data-step="3" style="display: none;">
-			<h2 class="ltb-step-title">3. <?php echo esc_html__('Wähle die Buchungsdauer', 'lasertagpro-buchung'); ?></h2>
+			<h2 class="ltb-step-title">3. <?php echo esc_html__('Buchungsdauer bestätigen', 'lasertagpro-buchung'); ?></h2>
 			<div class="ltb-duration-selector">
-				<button type="button" class="ltb-duration-btn" data-duration="1">1 <?php echo esc_html__('Stunde', 'lasertagpro-buchung'); ?></button>
-				<button type="button" class="ltb-duration-btn" data-duration="2">2 <?php echo esc_html__('Stunden', 'lasertagpro-buchung'); ?></button>
-				<button type="button" class="ltb-duration-btn" data-duration="3">3 <?php echo esc_html__('Stunden', 'lasertagpro-buchung'); ?></button>
+				<button type="button" class="ltb-duration-btn selected" data-duration="1">1 <?php echo esc_html__('Stunde', 'lasertagpro-buchung'); ?></button>
 			</div>
-			<p class="ltb-duration-hint"><?php echo esc_html__('Sie können auch mehrere Stunden buchen (z.B. 1 Stunde = ca. 3 Runden à 15 Minuten)', 'lasertagpro-buchung'); ?></p>
+			<p class="ltb-duration-hint"><?php echo esc_html__('1 Stunde = 3 Runden á 15 Minuten (danach Nachladen erforderlich)', 'lasertagpro-buchung'); ?></p>
 			<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="2"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
-			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="4" style="display: none;"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
+			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="4"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
 		</div>
 
 		<!-- Schritt 4: Datum -->

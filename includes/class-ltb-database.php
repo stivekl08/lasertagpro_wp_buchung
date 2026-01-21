@@ -113,32 +113,31 @@ class LTB_Database {
 		if ($existing_modes == 0) {
 			$default_modes = array(
 				array(
-					'name' => 'Offenes Spiel',
-					'description' => 'Bei einem offenen Spiel spielen mehrere Teams zusammen',
+					'name' => 'Normales Spiel',
+					'description' => 'Klassisches LaserTag Erlebnis - 1 Stunde = 3 Runden á 15 Minuten',
 					'duration' => 1,
-					'price' => 16.90,
-					'price_weekend' => 16.90,
+					'price' => 15.00,
+					'price_weekend' => 15.00,
 					'is_private' => 0,
-					'max_players' => 24,
+					'min_players' => 1,
+					'max_players' => 12,
 				),
 				array(
-					'name' => 'Privates Spiel',
-					'description' => 'Die ganze Arena gehört nur Dir und Deinen Freunden.',
+					'name' => 'Mit Elektroschock',
+					'description' => 'LaserTag mit Elektroschock-Armband für extra Action!',
 					'duration' => 1,
-					'price' => 16.90,
-					'price_weekend' => 16.90,
-					'private_game_extra_mo_do' => 29.00,
-					'private_game_extra_fr_so' => 59.00,
-					'is_private' => 1,
-					'max_players' => 24,
+					'price' => 30.00,
+					'price_weekend' => 30.00,
+					'is_private' => 0,
+					'min_players' => 1,
+					'max_players' => 12,
 				),
 			);
 			
 			foreach ($default_modes as $mode) {
 				$wpdb->insert(
 					$table_game_modes,
-					$mode,
-					array('%s', '%s', '%d', '%f', '%f', '%f', '%f', '%d', '%d')
+					$mode
 				);
 			}
 		}

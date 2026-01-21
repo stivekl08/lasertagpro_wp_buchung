@@ -220,6 +220,34 @@
 	color: var(--ltb-success);
 }
 
+.ltb-mode-pricing {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	margin-bottom: 1rem;
+}
+
+.ltb-mode-pricing .ltb-pricing-value {
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+
+.ltb-mode-pricing .ltb-pricing-label {
+	font-size: 0.85rem;
+	margin-top: 0.25rem;
+}
+
+.ltb-mode-hint {
+	text-align: center;
+	color: var(--ltb-text-light);
+	font-size: 0.9rem;
+	margin-bottom: 1.5rem;
+	padding: 0.75rem;
+	background-color: rgba(255, 102, 0, 0.1);
+	border-radius: 0.25rem;
+	border-left: 3px solid var(--ltb-primary);
+}
+
 .ltb-mode-select-btn {
 	width: 100%;
 	padding: 0.75rem;

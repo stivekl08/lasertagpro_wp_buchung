@@ -192,8 +192,10 @@ class LTB_Email {
 	private static function get_booking_request_email_template($reservation) {
 		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
 		// Deutsches 24-Stunden-Format verwenden
-		$start_time_obj = new DateTime($reservation->booking_date . ' ' . $reservation->start_time);
-		$end_time_obj = new DateTime($reservation->booking_date . ' ' . $reservation->end_time);
+		// Extrahiere nur das Datum (falls booking_date bereits eine Zeit enthält)
+		$date_only = substr($reservation->booking_date, 0, 10);
+		$start_time_obj = new DateTime($date_only . ' ' . $reservation->start_time);
+		$end_time_obj = new DateTime($date_only . ' ' . $reservation->end_time);
 		$time_formatted = $start_time_obj->format('H:i');
 		$end_time_formatted = $end_time_obj->format('H:i');
 		
@@ -264,8 +266,10 @@ class LTB_Email {
 		
 		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
 		// Deutsches 24-Stunden-Format verwenden
-		$start_time_obj = new DateTime($reservation->booking_date . ' ' . $reservation->start_time);
-		$end_time_obj = new DateTime($reservation->booking_date . ' ' . $reservation->end_time);
+		// Extrahiere nur das Datum (falls booking_date bereits eine Zeit enthält)
+		$date_only = substr($reservation->booking_date, 0, 10);
+		$start_time_obj = new DateTime($date_only . ' ' . $reservation->start_time);
+		$end_time_obj = new DateTime($date_only . ' ' . $reservation->end_time);
 		$time_formatted = $start_time_obj->format('H:i');
 		$end_time_formatted = $end_time_obj->format('H:i');
 		
@@ -326,7 +330,9 @@ class LTB_Email {
 	private static function get_cancellation_email_template($reservation) {
 		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
 		// Deutsches 24-Stunden-Format verwenden
-		$start_time_obj = new DateTime($reservation->booking_date . ' ' . $reservation->start_time);
+		// Extrahiere nur das Datum (falls booking_date bereits eine Zeit enthält)
+		$date_only = substr($reservation->booking_date, 0, 10);
+		$start_time_obj = new DateTime($date_only . ' ' . $reservation->start_time);
 		$time_formatted = $start_time_obj->format('H:i');
 		
 		ob_start();
