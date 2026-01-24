@@ -89,7 +89,15 @@
 
 			// Warenkorb
 			const checkoutBtn = this.container.querySelector('.ltb-btn-checkout');
-			if (checkoutBtn) checkoutBtn.addEventListener('click', () => this.showCheckout());
+			console.log('Checkout-Button gefunden:', checkoutBtn);
+			if (checkoutBtn) {
+				checkoutBtn.addEventListener('click', () => {
+					console.log('Checkout-Button geklickt!');
+					this.showCheckout();
+				});
+			} else {
+				console.error('Checkout-Button NICHT gefunden!');
+			}
 
 			const promoBtn = this.container.querySelector('.ltb-btn-promo');
 			if (promoBtn) promoBtn.addEventListener('click', () => this.applyPromoCode());
@@ -239,15 +247,11 @@
 					return;
 				}
 			}
-			if (step === 3 && !this.selectedGameMode) {
-				this.showMessage('error', 'Bitte wählen Sie einen Spielmodus.');
+			if (step === 3 && !this.selectedDuration) {
+				this.showMessage('error', 'Bitte wählen Sie ein Paket.');
 				return;
 			}
-			if (step === 4 && !this.selectedDuration) {
-				this.showMessage('error', 'Bitte wählen Sie eine Buchungsdauer.');
-				return;
-			}
-			if (step === 5 && !this.currentDate) {
+			if (step === 4 && !this.currentDate) {
 				this.showMessage('error', 'Bitte wählen Sie ein Datum.');
 				return;
 			}
@@ -267,25 +271,27 @@
 				console.log('Zeige Schritt:', step, 'Element:', targetStep);
 
 				// Spezielle Aktionen pro Schritt
-				if (step === 3) {
-					// Event-Listener für Dauer-Buttons sicherstellen
-					const durationBtns = this.container.querySelectorAll('.ltb-duration-btn');
-					durationBtns.forEach(btn => {
+				if (step === 2) {
+					// Event-Listener für Package-Cards sicherstellen
+					const packageCards = this.container.querySelectorAll('.ltb-package-card');
+					packageCards.forEach(card => {
 						// Alte Listener entfernen (falls vorhanden)
-						const newBtn = btn.cloneNode(true);
-						btn.parentNode.replaceChild(newBtn, btn);
+						const newCard = card.cloneNode(true);
+						card.parentNode.replaceChild(newCard, card);
 						// Neuen Listener hinzufügen
-						newBtn.addEventListener('click', (e) => {
+						newCard.addEventListener('click', (e) => {
 							e.preventDefault();
 							e.stopPropagation();
-							console.log('Dauer-Button geklickt:', newBtn.dataset.duration);
-							this.selectDuration(newBtn);
+							console.log('Package-Card geklickt:', newCard.dataset.duration);
+							this.selectPackage(newCard);
 						});
 					});
-				} else if (step === 4) {
+					// Spielmodus automatisch auf "LaserTag" setzen
+					this.selectedGameMode = 'LaserTag';
+				} else if (step === 3) {
 					this.updateDateDisplay();
-				} else if (step === 5) {
-					console.log('Wechsel zu Schritt 5 - lade Zeitslots...');
+				} else if (step === 4) {
+					console.log('Wechsel zu Schritt 4 - lade Zeitslots...');
 					// Kurze Verzögerung, damit das DOM aktualisiert wird
 					setTimeout(() => {
 						this.loadTimeSlots();
@@ -293,6 +299,32 @@
 				}
 			} else {
 				console.error('Schritt', step, 'nicht gefunden!');
+			}
+		},
+
+		selectPackage: function(card) {
+			console.log('selectPackage aufgerufen mit Card:', card, 'Dauer:', card.dataset.duration);
+			
+			// Alle Cards deselektieren
+			const allCards = this.container.querySelectorAll('.ltb-package-card');
+			allCards.forEach(c => c.classList.remove('ltb-selected'));
+			
+			// Ausgewählte Card markieren
+			card.classList.add('ltb-selected');
+			this.selectedDuration = parseInt(card.dataset.duration) || 1;
+			
+			// Spielmodus automatisch setzen
+			this.selectedGameMode = 'LaserTag';
+			
+			console.log('Ausgewähltes Paket - Dauer:', this.selectedDuration);
+			
+			// Weiter-Button anzeigen
+			const nextBtn = this.container.querySelector('.ltb-step-2 .ltb-next-step');
+			if (nextBtn) {
+				nextBtn.style.display = 'inline-block';
+				console.log('Weiter-Button angezeigt');
+			} else {
+				console.warn('Weiter-Button nicht gefunden!');
 			}
 		},
 
@@ -310,7 +342,7 @@
 			console.log('Ausgewählte Dauer:', this.selectedDuration);
 			
 			// Weiter-Button anzeigen
-			const nextBtn = this.container.querySelector('.ltb-step-3 .ltb-next-step');
+			const nextBtn = this.container.querySelector('.ltb-step-2 .ltb-next-step');
 			if (nextBtn) {
 				nextBtn.style.display = 'inline-block';
 				console.log('Weiter-Button angezeigt');
@@ -349,7 +381,7 @@
 		navigateDate: function(delta) {
 			this.currentDate.setDate(this.currentDate.getDate() + delta);
 			this.updateDateDisplay();
-			if (this.currentStep === 5) {
+			if (this.currentStep === 4) {
 				this.loadTimeSlots();
 			}
 		},
@@ -457,10 +489,10 @@
 				return;
 			}
 
-			// Prüfen ob Schritt 5 wirklich sichtbar ist
-			const step5 = this.container.querySelector('.ltb-step-5');
-			if (!step5 || step5.style.display === 'none') {
-				console.warn('Schritt 5 ist nicht sichtbar!');
+			// Prüfen ob Schritt 4 wirklich sichtbar ist
+			const step4 = this.container.querySelector('.ltb-step-4');
+			if (!step4 || step4.style.display === 'none') {
+				console.warn('Schritt 4 ist nicht sichtbar!');
 			}
 
 			grid.innerHTML = '';
@@ -598,9 +630,9 @@
 		selectTimeSlot: function(slot, pricing) {
 			console.log('Zeitslot ausgewählt:', slot, 'Aktueller Schritt:', this.currentStep);
 			
-			// Sicherstellen, dass wir in Schritt 5 bleiben
-			if (this.currentStep !== 5) {
-				console.warn('Nicht in Schritt 5, aktueller Schritt:', this.currentStep);
+			// Sicherstellen, dass wir in Schritt 4 sind (Zeitslot-Auswahl)
+			if (this.currentStep !== 4) {
+				console.warn('Nicht in Schritt 4, aktueller Schritt:', this.currentStep);
 				return;
 			}
 			
@@ -662,11 +694,11 @@
 						selectAnotherDateBtn.style.display = 'inline-block';
 					}
 					
-					// Sicherstellen, dass wir in Schritt 5 bleiben
+					// Sicherstellen, dass wir in Schritt 4 bleiben
 					console.log('Nach addToCart - aktueller Schritt:', this.currentStep);
-					if (this.currentStep !== 5) {
-						console.warn('Schritt wurde geändert! Wechsel zurück zu Schritt 5');
-						this.goToStep(5);
+					if (this.currentStep !== 4) {
+						console.warn('Schritt wurde geändert! Wechsel zurück zu Schritt 4');
+						this.goToStep(4);
 					}
 				} else {
 					this.showMessage('error', data.data?.message || 'Fehler beim Hinzufügen.');
@@ -894,8 +926,15 @@
 		},
 
 		showCheckout: function() {
+			console.log('showCheckout aufgerufen');
 			const modal = this.container.querySelector('.ltb-checkout-modal');
-			if (modal) modal.style.display = 'flex';
+			console.log('Modal gefunden:', modal);
+			if (modal) {
+				modal.style.display = 'flex';
+				console.log('Modal angezeigt');
+			} else {
+				console.error('Modal NICHT gefunden!');
+			}
 		},
 
 		hideCheckout: function() {

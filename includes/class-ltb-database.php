@@ -108,28 +108,18 @@ class LTB_Database {
 			$wpdb->query("ALTER TABLE $table_game_modes MODIFY COLUMN duration decimal(5,2) NOT NULL DEFAULT 1.00 COMMENT 'Dauer in Stunden'");
 		}
 		
-		// Standard-Spielmodi einfügen, falls Tabelle leer ist
+		// Standard-Spielmodus einfügen, falls Tabelle leer ist
 		$existing_modes = $wpdb->get_var("SELECT COUNT(*) FROM $table_game_modes");
 		if ($existing_modes == 0) {
 			$default_modes = array(
 				array(
-					'name' => 'Normales Spiel',
-					'description' => 'Klassisches LaserTag Erlebnis - 1 Stunde = 3 Runden á 15 Minuten',
+					'name' => 'LaserTag',
+					'description' => 'Outdoor LaserTag Action - Profi-Ausrüstung, Mineralwasser & Fotoservice inkl.',
 					'duration' => 1,
-					'price' => 15.00,
-					'price_weekend' => 15.00,
+					'price' => 25.00,
+					'price_weekend' => 25.00,
 					'is_private' => 0,
-					'min_players' => 1,
-					'max_players' => 12,
-				),
-				array(
-					'name' => 'Mit Elektroschock',
-					'description' => 'LaserTag mit Elektroschock-Armband für extra Action!',
-					'duration' => 1,
-					'price' => 30.00,
-					'price_weekend' => 30.00,
-					'is_private' => 0,
-					'min_players' => 1,
+					'min_players' => 6,
 					'max_players' => 12,
 				),
 			);

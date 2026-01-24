@@ -10,6 +10,15 @@ if (!defined('ABSPATH')) {
 class LTB_Pricing {
 
 	/**
+	 * Staffelpreise pro Person (pauschal, nicht pro Stunde)
+	 */
+	private static $package_prices = array(
+		1 => 25.00,  // 60 Minuten: €25 pro Person
+		2 => 35.00,  // 120 Minuten: €35 pro Person
+		3 => 45.00,  // 180 Minuten: €45 pro Person
+	);
+
+	/**
 	 * Preis für einen Slot berechnen
 	 *
 	 * @param string $date Datum (Y-m-d)
@@ -19,57 +28,22 @@ class LTB_Pricing {
 	 * @return array Preisinformationen
 	 */
 	public static function calculate_slot_price($date, $game_mode, $person_count, $duration = 1) {
-		global $wpdb;
+		// Staffelpreis pro Person basierend auf Dauer
+		$price_per_person = isset(self::$package_prices[$duration]) 
+			? self::$package_prices[$duration] 
+			: self::$package_prices[1];
 		
-		$table = $wpdb->prefix . 'ltb_game_modes';
-		$mode = $wpdb->get_row($wpdb->prepare(
-			"SELECT * FROM $table WHERE name = %s AND active = 1",
-			$game_mode
-		));
-		
-		if (!$mode) {
-			return array(
-				'price_per_person' => 0,
-				'total_price' => 0,
-				'base_price' => 0,
-				'extra_price' => 0,
-			);
-		}
-		
-		// Wochentag bestimmen (1=Montag, 7=Sonntag)
-		$day_of_week = date('N', strtotime($date));
-		$is_weekend = ($day_of_week >= 5); // Freitag, Samstag, Sonntag
-		
-		// Basispreis pro Person pro Stunde
-		$base_price_per_hour = $is_weekend && $mode->price_weekend ? $mode->price_weekend : $mode->price;
-		
-		// Zusatzkosten für privates Spiel (einmalig, nicht pro Stunde)
-		$extra_price = 0;
-		if ($mode->is_private) {
-			if ($is_weekend && $mode->private_game_extra_fr_so) {
-				$extra_price = $mode->private_game_extra_fr_so;
-			} elseif (!$is_weekend && $mode->private_game_extra_mo_do) {
-				$extra_price = $mode->private_game_extra_mo_do;
-			}
-		}
-		
-		// Preis pro Person (pro Stunde)
-		$price_per_person_per_hour = $base_price_per_hour;
-		
-		// Gesamtpreis = (Preis pro Person × Anzahl Personen × Dauer in Stunden) + Extra
-		$total_price = ($base_price_per_hour * $person_count * $duration) + $extra_price;
-		
-		// Preis pro Person (gesamt, nicht pro Stunde)
-		$price_per_person = $base_price_per_hour * $duration;
+		// Gesamtpreis = Preis pro Person × Anzahl Personen
+		$total_price = $price_per_person * $person_count;
 		
 		return array(
 			'price_per_person' => $price_per_person,
-			'price_per_person_per_hour' => $price_per_person_per_hour,
+			'price_per_person_per_hour' => $price_per_person,
 			'total_price' => $total_price,
-			'base_price' => $base_price_per_hour,
-			'extra_price' => $extra_price,
+			'base_price' => $price_per_person,
+			'extra_price' => 0,
 			'duration' => $duration,
-			'is_weekend' => $is_weekend,
+			'is_weekend' => false,
 		);
 	}
 

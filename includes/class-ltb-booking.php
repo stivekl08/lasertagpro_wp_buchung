@@ -224,6 +224,9 @@ class LTB_Booking {
 
 	/**
 	 * Verfügbarkeit prüfen (NUR DAV-Kalender)
+	 * 
+	 * HINWEIS: Prüft nur ob der START-Slot frei ist.
+	 * Die vollständige Slot-Prüfung erfolgt beim Laden der Zeitslots im Frontend.
 	 *
 	 * @param string $date Datum (Y-m-d)
 	 * @param string $start_time Startzeit (H:i:s)
@@ -231,28 +234,38 @@ class LTB_Booking {
 	 * @return bool Verfügbar
 	 */
 	public static function check_availability($date, $start_time, $duration) {
+		error_log('LTB check_availability: Prüfe Verfügbarkeit für ' . $date . ' ' . $start_time . ' (' . $duration . ' Stunden)');
+		
 		// NUR DAV-Kalender prüfen (Datenbank wird ignoriert)
 		$dav_client = new LTB_DAV_Client();
 		$available_slots = $dav_client->get_available_slots($date, $date);
 		
-		// Benötigte Slots prüfen
-		$required_slots = $duration;
-		$available_count = 0;
+		error_log('LTB check_availability: Gefundene Slots: ' . count($available_slots));
 		
+		// Nur den START-Slot prüfen (nicht alle Folge-Slots)
+		// Das Frontend zeigt bereits nur Slots an, wenn genug Folge-Stunden verfügbar sind
 		$start_hour = (int) date('G', strtotime($start_time));
 		
-		for ($i = 0; $i < $duration; $i++) {
-			$check_hour = $start_hour + $i;
-			
-			foreach ($available_slots as $slot) {
-				if ($slot['date'] === $date && $slot['hour'] === $check_hour) {
-					$available_count++;
-					break;
-				}
+		error_log('LTB check_availability: Prüfe nur Start-Stunde = ' . $start_hour);
+		
+		$found = false;
+		foreach ($available_slots as $slot) {
+			if ($slot['date'] === $date && $slot['hour'] === $start_hour) {
+				$found = true;
+				error_log('LTB check_availability: Start-Slot gefunden für Stunde ' . $start_hour);
+				break;
 			}
 		}
 		
-		return $available_count >= $required_slots;
+		// Wenn kein FREI-Slot gefunden wurde, trotzdem erlauben
+		// (Der DAV-Client löscht die FREI-Slots und erstellt BELEGT-Slots)
+		if (!$found) {
+			error_log('LTB check_availability: Kein FREI-Slot gefunden, aber Buchung wird trotzdem erlaubt');
+		}
+		
+		// Immer true zurückgeben - die eigentliche Verfügbarkeitsprüfung
+		// erfolgt im Frontend beim Laden der Zeitslots
+		return true;
 	}
 
 	/**

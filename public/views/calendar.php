@@ -26,41 +26,43 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="2"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
 		</div>
 
-		<!-- Schritt 2: Spielmodus -->
+		<!-- Schritt 2: Buchungsdauer -->
 		<div class="ltb-step ltb-step-2" data-step="2" style="display: none;">
-			<h2 class="ltb-step-title">2. <?php echo esc_html__('Spielmodus wählen', 'lasertagpro-buchung'); ?></h2>
-			<div class="ltb-game-modes">
-				<?php foreach ($game_modes as $mode): ?>
-					<div class="ltb-game-mode-card" data-mode="<?php echo esc_attr($mode->name); ?>" data-is-private="0">
-						<h3><?php echo esc_html($mode->name); ?></h3>
-						<p class="ltb-mode-description"><?php echo esc_html($mode->description); ?></p>
-						<div class="ltb-mode-pricing">
-							<span class="ltb-pricing-value">€<?php echo esc_html(number_format($mode->price, 2, ',', '.')); ?></span>
-							<span class="ltb-pricing-label"><?php echo esc_html__('pro Person/Stunde', 'lasertagpro-buchung'); ?></span>
-						</div>
-						<button type="button" class="ltb-mode-select-btn"><?php echo esc_html__('Auswählen', 'lasertagpro-buchung'); ?></button>
-					</div>
-				<?php endforeach; ?>
+			<h2 class="ltb-step-title">2. <?php echo esc_html__('Wähle dein Paket', 'lasertagpro-buchung'); ?></h2>
+			<div class="ltb-duration-packages">
+				<div class="ltb-package-card" data-duration="1">
+					<span class="ltb-package-label"><?php echo esc_html__('ACTION STARTER', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-duration">60 <?php echo esc_html__('Minuten', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-price">€25,-</span>
+					<span class="ltb-package-per-person"><?php echo esc_html__('pro Person', 'lasertagpro-buchung'); ?></span>
+				</div>
+				<div class="ltb-package-card ltb-bestseller" data-duration="2">
+					<span class="ltb-package-badge"><?php echo esc_html__('Best Seller', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-label"><?php echo esc_html__('PREMIUM MISSION', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-duration">120 <?php echo esc_html__('Minuten', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-price">€35,-</span>
+					<span class="ltb-package-per-person"><?php echo esc_html__('pro Person', 'lasertagpro-buchung'); ?></span>
+				</div>
+				<div class="ltb-package-card" data-duration="3">
+					<span class="ltb-package-label"><?php echo esc_html__('ELITE OPERATION', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-duration">180 <?php echo esc_html__('Minuten', 'lasertagpro-buchung'); ?></span>
+					<span class="ltb-package-price">€45,-</span>
+					<span class="ltb-package-per-person"><?php echo esc_html__('pro Person', 'lasertagpro-buchung'); ?></span>
+				</div>
 			</div>
-			<p class="ltb-mode-hint"><?php echo esc_html__('1 Stunde = 3 Runden á 15 Minuten', 'lasertagpro-buchung'); ?></p>
+			<ul class="ltb-package-features">
+				<li>✓ <?php echo esc_html__('Ab 6 Personen buchbar', 'lasertagpro-buchung'); ?></li>
+				<li>✓ <?php echo esc_html__('Profi-Ausrüstung inkl.', 'lasertagpro-buchung'); ?></li>
+				<li>✓ <?php echo esc_html__('Mineralwasser inkl.', 'lasertagpro-buchung'); ?></li>
+				<li>✓ <?php echo esc_html__('Gratis Fotoservice', 'lasertagpro-buchung'); ?></li>
+			</ul>
 			<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="1"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
 			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="3" style="display: none;"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
 		</div>
 
-		<!-- Schritt 3: Buchungsdauer (nur 1 Stunde möglich) -->
+		<!-- Schritt 3: Datum -->
 		<div class="ltb-step ltb-step-3" data-step="3" style="display: none;">
-			<h2 class="ltb-step-title">3. <?php echo esc_html__('Buchungsdauer bestätigen', 'lasertagpro-buchung'); ?></h2>
-			<div class="ltb-duration-selector">
-				<button type="button" class="ltb-duration-btn selected" data-duration="1">1 <?php echo esc_html__('Stunde', 'lasertagpro-buchung'); ?></button>
-			</div>
-			<p class="ltb-duration-hint"><?php echo esc_html__('1 Stunde = 3 Runden á 15 Minuten (danach Nachladen erforderlich)', 'lasertagpro-buchung'); ?></p>
-			<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="2"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
-			<button type="button" class="ltb-btn-primary ltb-next-step" data-next="4"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
-		</div>
-
-		<!-- Schritt 4: Datum -->
-		<div class="ltb-step ltb-step-4" data-step="4" style="display: none;">
-			<h2 class="ltb-step-title">4. <?php echo esc_html__('Wähle ein Datum', 'lasertagpro-buchung'); ?></h2>
+			<h2 class="ltb-step-title">3. <?php echo esc_html__('Wähle ein Datum', 'lasertagpro-buchung'); ?></h2>
 			<div class="ltb-date-navigation">
 				<button type="button" class="ltb-nav-btn ltb-prev-date" aria-label="<?php echo esc_attr__('Vorheriger Tag', 'lasertagpro-buchung'); ?>">‹</button>
 				<div class="ltb-current-date">
@@ -69,19 +71,15 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 				</div>
 				<button type="button" class="ltb-nav-btn ltb-next-date" aria-label="<?php echo esc_attr__('Nächster Tag', 'lasertagpro-buchung'); ?>">›</button>
 			</div>
-			<div class="ltb-game-length">
-				<span class="ltb-length-icon">L</span>
-				<span class="ltb-length-text"><?php echo esc_html__('15min Spiel-Länge', 'lasertagpro-buchung'); ?></span>
-			</div>
 			<div class="ltb-step-actions">
-				<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="3"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
-				<button type="button" class="ltb-btn-primary ltb-next-step" data-next="5"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
+				<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="2"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
+				<button type="button" class="ltb-btn-primary ltb-next-step" data-next="4"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
 			</div>
 		</div>
 
-		<!-- Schritt 5: Zeit-Slots -->
-		<div class="ltb-step ltb-step-5" data-step="5" style="display: none;">
-			<h2 class="ltb-step-title">5. <?php echo esc_html__('Wähle eine Uhrzeit', 'lasertagpro-buchung'); ?></h2>
+		<!-- Schritt 4: Zeit-Slots -->
+		<div class="ltb-step ltb-step-4" data-step="4" style="display: none;">
+			<h2 class="ltb-step-title">4. <?php echo esc_html__('Wähle eine Uhrzeit', 'lasertagpro-buchung'); ?></h2>
 			<div class="ltb-time-slots-container">
 				<div class="ltb-calendar-loading">
 					<p><?php echo esc_html__('Lädt verfügbare Zeiten...', 'lasertagpro-buchung'); ?></p>
@@ -89,7 +87,7 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 				<div class="ltb-time-slots-grid"></div>
 			</div>
 			<div class="ltb-step-actions">
-				<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="4"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
+				<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="3"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
 				<button type="button" class="ltb-btn-secondary ltb-select-another-date" style="display: none;"><?php echo esc_html__('Anderes Datum wählen', 'lasertagpro-buchung'); ?></button>
 			</div>
 		</div>
