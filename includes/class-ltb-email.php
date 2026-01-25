@@ -48,6 +48,9 @@ class LTB_Email {
 		
 		$result = wp_mail($to, $subject, $message, $headers);
 		
+		// *** ADMIN-BENACHRICHTIGUNG SENDEN ***
+		self::send_admin_notification($reservation);
+		
 		// Alle Outputs sammeln und löschen
 		$output = ob_get_clean();
 		
@@ -65,6 +68,106 @@ class LTB_Email {
 		}
 		
 		return $result;
+	}
+	
+	/**
+	 * Admin-Benachrichtigung bei neuer Reservierung
+	 *
+	 * @param object $reservation Reservierung
+	 * @return bool Erfolg
+	 */
+	public static function send_admin_notification($reservation) {
+		$admin_email = get_option('admin_email');
+		$subject = __('🔔 Neue Reservierungsanfrage - LaserTagPro', 'lasertagpro-buchung');
+		
+		$message = self::get_admin_notification_template($reservation);
+		
+		$from_email = get_option('ltb_email_from', $admin_email);
+		$from_name = get_option('ltb_email_from_name', get_bloginfo('name'));
+		
+		$headers = array(
+			'Content-Type: text/html; charset=UTF-8',
+			'From: ' . $from_name . ' <' . $from_email . '>',
+			'Reply-To: ' . $reservation->name . ' <' . $reservation->email . '>',
+		);
+		
+		return wp_mail($admin_email, $subject, $message, $headers);
+	}
+	
+	/**
+	 * Admin-Benachrichtigungs-Template
+	 *
+	 * @param object $reservation Reservierung
+	 * @return string E-Mail-HTML
+	 */
+	private static function get_admin_notification_template($reservation) {
+		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
+		$date_only = substr($reservation->booking_date, 0, 10);
+		$start_time_obj = new DateTime($date_only . ' ' . $reservation->start_time);
+		$end_time_obj = new DateTime($date_only . ' ' . $reservation->end_time);
+		$time_formatted = $start_time_obj->format('H:i');
+		$end_time_formatted = $end_time_obj->format('H:i');
+		
+		$admin_url = admin_url('admin.php?page=lasertagpro-buchung');
+		
+		ob_start();
+		?>
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<meta charset="UTF-8">
+			<style>
+				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+				.container { max-width: 600px; margin: 0 auto; padding: 20px; }
+				.header { background-color: #FF6600; color: white; padding: 20px; text-align: center; }
+				.content { padding: 20px; background-color: #f9f9f9; }
+				.details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #FF6600; }
+				.contact-box { background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 15px 0; }
+				.message-box { background-color: #fff3e0; border-left: 4px solid #FF9800; padding: 15px; margin: 15px 0; }
+				.button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+			</style>
+		</head>
+		<body>
+			<div class="container">
+				<div class="header">
+					<h1>🔔 <?php echo esc_html__('Neue Reservierungsanfrage', 'lasertagpro-buchung'); ?></h1>
+				</div>
+				<div class="content">
+					<p><strong><?php echo esc_html__('Eine neue Reservierungsanfrage ist eingegangen!', 'lasertagpro-buchung'); ?></strong></p>
+					
+					<div class="contact-box">
+						<h2>📞 <?php echo esc_html__('Kontaktdaten', 'lasertagpro-buchung'); ?></h2>
+						<p><strong><?php echo esc_html__('Name:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($reservation->name); ?></p>
+						<p><strong><?php echo esc_html__('E-Mail:', 'lasertagpro-buchung'); ?></strong> <a href="mailto:<?php echo esc_attr($reservation->email); ?>"><?php echo esc_html($reservation->email); ?></a></p>
+						<p><strong><?php echo esc_html__('Telefon:', 'lasertagpro-buchung'); ?></strong> <?php echo !empty($reservation->phone) ? esc_html($reservation->phone) : '<em>' . esc_html__('Nicht angegeben', 'lasertagpro-buchung') . '</em>'; ?></p>
+					</div>
+					
+					<?php if (!empty($reservation->message)): ?>
+					<div class="message-box">
+						<h2>💬 <?php echo esc_html__('Nachricht vom Kunden', 'lasertagpro-buchung'); ?></h2>
+						<p><?php echo nl2br(esc_html($reservation->message)); ?></p>
+					</div>
+					<?php endif; ?>
+					
+					<div class="details">
+						<h2>📅 <?php echo esc_html__('Buchungsdetails', 'lasertagpro-buchung'); ?></h2>
+						<p><strong><?php echo esc_html__('Datum:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($date_formatted); ?></p>
+						<p><strong><?php echo esc_html__('Uhrzeit:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($time_formatted); ?> - <?php echo esc_html($end_time_formatted); ?> <?php echo esc_html__('Uhr', 'lasertagpro-buchung'); ?></p>
+						<p><strong><?php echo esc_html__('Dauer:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($reservation->booking_duration); ?> <?php echo esc_html__('Stunden', 'lasertagpro-buchung'); ?></p>
+						<p><strong><?php echo esc_html__('Personen:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($reservation->person_count); ?></p>
+						<p><strong><?php echo esc_html__('Spielmodus:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($reservation->game_mode); ?></p>
+						<p><strong><?php echo esc_html__('Gesamtpreis:', 'lasertagpro-buchung'); ?></strong> €<?php echo number_format($reservation->total_price, 2, ',', '.'); ?></p>
+					</div>
+					
+					<p style="text-align: center;">
+						<a href="<?php echo esc_url($admin_url); ?>" class="button"><?php echo esc_html__('Reservierung im Admin-Bereich ansehen', 'lasertagpro-buchung'); ?></a>
+					</p>
+				</div>
+			</div>
+		</body>
+		</html>
+		<?php
+		return ob_get_clean();
 	}
 
 	/**
