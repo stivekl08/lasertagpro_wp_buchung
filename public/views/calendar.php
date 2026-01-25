@@ -65,12 +65,14 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 			<h2 class="ltb-step-title">3. <?php echo esc_html__('Wähle ein Datum', 'lasertagpro-buchung'); ?></h2>
 			<div class="ltb-date-navigation">
 				<button type="button" class="ltb-nav-btn ltb-prev-date" aria-label="<?php echo esc_attr__('Vorheriger Tag', 'lasertagpro-buchung'); ?>">‹</button>
-				<div class="ltb-current-date">
+				<div class="ltb-current-date ltb-date-picker-trigger">
 					<span class="ltb-date-display"></span>
 					<span class="ltb-calendar-icon">📅</span>
+					<input type="date" class="ltb-date-input" aria-label="<?php echo esc_attr__('Datum wählen', 'lasertagpro-buchung'); ?>">
 				</div>
 				<button type="button" class="ltb-nav-btn ltb-next-date" aria-label="<?php echo esc_attr__('Nächster Tag', 'lasertagpro-buchung'); ?>">›</button>
 			</div>
+			<p class="ltb-date-hint"><?php echo esc_html__('Klicke auf das Datum für Kalender-Auswahl', 'lasertagpro-buchung'); ?></p>
 			<div class="ltb-step-actions">
 				<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="2"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
 				<button type="button" class="ltb-btn-primary ltb-next-step" data-next="4"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>

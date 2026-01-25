@@ -74,12 +74,81 @@
 					this.selectDuration(btn);
 				});
 			});
+			
+			// Package-Cards (Paket-Auswahl) - DIREKT beim Start binden
+			const packageCards = this.container.querySelectorAll('.ltb-package-card');
+			console.log('Package-Cards gefunden:', packageCards.length);
+			packageCards.forEach(card => {
+				// Click-Event
+				card.addEventListener('click', (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					console.log('Package-Card CLICK:', card.dataset.duration);
+					this.selectPackage(card);
+				});
+				// Touch-Event für mobile Geräte
+				card.addEventListener('touchend', (e) => {
+					e.preventDefault();
+					console.log('Package-Card TOUCH:', card.dataset.duration);
+					this.selectPackage(card);
+				});
+			});
 
 			// Datum-Navigation
 			const prevDateBtn = this.container.querySelector('.ltb-prev-date');
 			const nextDateBtn = this.container.querySelector('.ltb-next-date');
 			if (prevDateBtn) prevDateBtn.addEventListener('click', () => this.navigateDate(-1));
 			if (nextDateBtn) nextDateBtn.addEventListener('click', () => this.navigateDate(1));
+			
+			// Kalender-Datepicker
+			const dateInput = this.container.querySelector('.ltb-date-input');
+			const dateTrigger = this.container.querySelector('.ltb-date-picker-trigger');
+			if (dateInput) {
+				// Minimum-Datum auf heute setzen
+				const today = new Date();
+				dateInput.min = this.formatDate(today);
+				// Aktuelles Datum setzen
+				dateInput.value = this.formatDate(this.currentDate);
+				
+				// Bei Änderung Datum übernehmen
+				dateInput.addEventListener('change', (e) => {
+					const selectedDate = new Date(e.target.value + 'T12:00:00');
+					if (!isNaN(selectedDate.getTime())) {
+						this.currentDate = selectedDate;
+						this.updateDateDisplay();
+						// Wenn wir bereits in Schritt 4 sind, Slots neu laden
+						if (this.currentStep === 4) {
+							this.loadTimeSlots();
+						}
+						console.log('Datum per Kalender gewählt:', this.formatDate(this.currentDate));
+					}
+				});
+				
+				// Desktop-Fix: Klick auf Container öffnet Kalender
+				if (dateTrigger) {
+					dateTrigger.addEventListener('click', (e) => {
+						// Nicht wenn direkt auf Input geklickt wurde
+						if (e.target === dateInput) return;
+						
+						console.log('Date-Trigger geklickt, öffne Kalender...');
+						
+						// Moderne Browser: showPicker()
+						if (typeof dateInput.showPicker === 'function') {
+							try {
+								dateInput.showPicker();
+							} catch (err) {
+								console.log('showPicker fehlgeschlagen, versuche focus/click');
+								dateInput.focus();
+								dateInput.click();
+							}
+						} else {
+							// Fallback für ältere Browser
+							dateInput.focus();
+							dateInput.click();
+						}
+					});
+				}
+			}
 
 			// Anderes Datum wählen Button
 			const selectAnotherDateBtn = this.container.querySelector('.ltb-select-another-date');
@@ -269,25 +338,18 @@
 				targetStep.style.display = 'block';
 				this.currentStep = step;
 				console.log('Zeige Schritt:', step, 'Element:', targetStep);
+				
+				// *** AUTOMATISCH NACH OBEN SCROLLEN ***
+				// Zum Anfang des Booking-Containers scrollen
+				setTimeout(() => {
+					this.container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}, 50);
 
 				// Spezielle Aktionen pro Schritt
 				if (step === 2) {
-					// Event-Listener für Package-Cards sicherstellen
-					const packageCards = this.container.querySelectorAll('.ltb-package-card');
-					packageCards.forEach(card => {
-						// Alte Listener entfernen (falls vorhanden)
-						const newCard = card.cloneNode(true);
-						card.parentNode.replaceChild(newCard, card);
-						// Neuen Listener hinzufügen
-						newCard.addEventListener('click', (e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							console.log('Package-Card geklickt:', newCard.dataset.duration);
-							this.selectPackage(newCard);
-						});
-					});
 					// Spielmodus automatisch auf "LaserTag" setzen
 					this.selectedGameMode = 'LaserTag';
+					console.log('Schritt 2 aktiv - Paket-Auswahl');
 				} else if (step === 3) {
 					this.updateDateDisplay();
 				} else if (step === 4) {
@@ -393,10 +455,17 @@
 			const dayName = days[this.currentDate.getDay()];
 			const day = this.currentDate.getDate();
 			const month = months[this.currentDate.getMonth()];
+			const year = this.currentDate.getFullYear();
 
 			const dateDisplay = this.container.querySelector('.ltb-date-display');
 			if (dateDisplay) {
-				dateDisplay.textContent = dayName + ', ' + day + ', ' + month;
+				dateDisplay.textContent = dayName + ', ' + day + '. ' + month + ' ' + year;
+			}
+			
+			// Date-Input synchronisieren
+			const dateInput = this.container.querySelector('.ltb-date-input');
+			if (dateInput) {
+				dateInput.value = this.formatDate(this.currentDate);
 			}
 		},
 
@@ -510,33 +579,51 @@
 				return;
 			}
 
-			// Slots rendern
-			const promises = this.availableSlots.map(slot => {
-				return this.fetchSlotPricing(slot).then(pricing => {
-					if (!pricing) {
-						console.warn('Keine Preis-Daten für Slot:', slot);
-						pricing = { price_per_person: 0, total_price: 0 };
-					}
-					const slotEl = this.createTimeSlotElement(slot, pricing);
-					grid.appendChild(slotEl);
-					console.log('Slot hinzugefügt:', slotEl, 'Grid hat jetzt', grid.children.length, 'Kinder');
-				}).catch(error => {
-					console.error('Fehler beim Rendern des Slots:', error, slot);
-				});
+			// *** SLOTS NACH UHRZEIT SORTIEREN ***
+			this.availableSlots.sort((a, b) => {
+				const hourA = parseInt(a.hour) || 0;
+				const hourB = parseInt(b.hour) || 0;
+				return hourA - hourB;
+			});
+			console.log('Slots sortiert nach Uhrzeit');
+
+			// *** PERFORMANCE: Preis direkt berechnen statt AJAX pro Slot ***
+			// Preis basiert auf gewähltem Paket (Dauer)
+			const pricePerPerson = this.calculatePricePerPerson();
+			const pricing = {
+				price_per_person: pricePerPerson,
+				total_price: pricePerPerson * this.playerCount
+			};
+			
+			console.log('Preis berechnet:', pricing, 'Dauer:', this.selectedDuration, 'Spieler:', this.playerCount);
+
+			// Slots direkt rendern (ohne AJAX)
+			this.availableSlots.forEach(slot => {
+				const slotEl = this.createTimeSlotElement(slot, pricing);
+				grid.appendChild(slotEl);
 			});
 
-			Promise.all(promises).then(() => {
-				console.log('Alle Slots gerendert. Grid hat', grid.children.length, 'Elemente');
-				// Prüfen ob Grid sichtbar ist
-				const computedStyle = window.getComputedStyle(grid);
-				console.log('Grid CSS:', {
-					display: computedStyle.display,
-					visibility: computedStyle.visibility,
-					opacity: computedStyle.opacity,
-					height: computedStyle.height,
-					width: computedStyle.width
-				});
+			// Nach Uhrzeit sortieren
+			const slotElements = Array.from(grid.querySelectorAll('.ltb-time-slot'));
+			slotElements.sort((a, b) => {
+				const slotA = JSON.parse(a.dataset.slot);
+				const slotB = JSON.parse(b.dataset.slot);
+				return (parseInt(slotA.hour) || 0) - (parseInt(slotB.hour) || 0);
 			});
+			// Grid leeren und sortiert wieder einfügen
+			grid.innerHTML = '';
+			slotElements.forEach(el => grid.appendChild(el));
+			console.log('Slots gerendert und sortiert:', slotElements.length);
+		},
+		
+		// Preis pro Person basierend auf gewähltem Paket
+		calculatePricePerPerson: function() {
+			switch (this.selectedDuration) {
+				case 1: return 25.00;  // 60 Min
+				case 2: return 35.00;  // 120 Min
+				case 3: return 45.00;  // 180 Min
+				default: return 25.00;
+			}
 		},
 
 		fetchSlotPricing: function(slot) {
@@ -594,7 +681,17 @@
 			slotEl.className = 'ltb-time-slot';
 			slotEl.dataset.slot = JSON.stringify(slot);
 
-			const timeStr = slot.start.split(' ')[1].substring(0, 5);
+			// Startzeit
+			const startTimeStr = slot.start.split(' ')[1].substring(0, 5);
+			
+			// Endzeit berechnen (Startzeit + Dauer)
+			const startHour = parseInt(slot.hour) || parseInt(startTimeStr.split(':')[0]) || 0;
+			const duration = this.selectedDuration || 1;
+			const endHour = startHour + duration;
+			const endTimeStr = String(endHour).padStart(2, '0') + ':00';
+			
+			// Zeitanzeige: "15:00 - 18:00"
+			const timeDisplay = startTimeStr + ' - ' + endTimeStr;
 			
 			// Preis sicher als Zahl behandeln
 			if (!pricing) {
@@ -608,9 +705,12 @@
 
 			const priceNum = Number(pricePerPerson) || 0;
 
-			// KEIN RABATT - NUR EIN PREIS!
+			// Dauer-Info
+			const durationText = duration === 1 ? '60 Min' : (duration === 2 ? '120 Min' : '180 Min');
+
 			slotEl.innerHTML = `
-				<div class="ltb-slot-time">${timeStr}</div>
+				<div class="ltb-slot-time">${timeDisplay}</div>
+				<div class="ltb-slot-duration">${durationText}</div>
 				<div class="ltb-slot-pricing">
 					${priceNum > 0 ? `<span class="ltb-slot-price">€${priceNum.toFixed(2)}</span>` : '<span class="ltb-slot-price">€0.00</span>'}
 				</div>

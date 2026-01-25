@@ -170,13 +170,19 @@ class LTB_DAV_Client {
 				$date_str = $start_dt->format('Y-m-d');
 				$hour = (int) $start_dt->format('G');
 				
-				// Slot hinzufügen
-				$available_slots[] = array(
-					'date' => $date_str,
-					'start' => $event['start'],
-					'end' => $event['end'],
-					'hour' => $hour,
-				);
+				// *** ÖFFNUNGSZEITEN PRÜFEN ***
+				$opening_hour = (int) get_option('ltb_start_hour', 10);
+				$closing_hour = (int) get_option('ltb_end_hour', 16);
+				
+				// Slot nur hinzufügen wenn innerhalb der Öffnungszeiten
+				if ($hour >= $opening_hour && $hour <= $closing_hour) {
+					$available_slots[] = array(
+						'date' => $date_str,
+						'start' => $event['start'],
+						'end' => $event['end'],
+						'hour' => $hour,
+					);
+				}
 			}
 		}
 		
@@ -276,14 +282,15 @@ class LTB_DAV_Client {
 		
 		$current = clone $start;
 		
-		// Alle möglichen 1-Stunden-Slots generieren (z.B. 10:00-23:00)
+		// Alle möglichen 1-Stunden-Slots generieren
 		$start_hour = (int) get_option('ltb_start_hour', 10);
-		$end_hour = (int) get_option('ltb_end_hour', 23);
+		$end_hour = (int) get_option('ltb_end_hour', 16);
 		
 		while ($current < $end) {
 			$date_str = $current->format('Y-m-d');
 			
-			for ($hour = $start_hour; $hour < $end_hour; $hour++) {
+			// <= damit der letzte Slot um end_hour starten kann
+			for ($hour = $start_hour; $hour <= $end_hour; $hour++) {
 				$slot_start = $date_str . ' ' . str_pad($hour, 2, '0', STR_PAD_LEFT) . ':00:00';
 				$slot_end = $date_str . ' ' . str_pad($hour + 1, 2, '0', STR_PAD_LEFT) . ':00:00';
 				
