@@ -140,6 +140,17 @@ class LTB_Email {
 						<p><strong><?php echo esc_html__('Name:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($reservation->name); ?></p>
 						<p><strong><?php echo esc_html__('E-Mail:', 'lasertagpro-buchung'); ?></strong> <a href="mailto:<?php echo esc_attr($reservation->email); ?>"><?php echo esc_html($reservation->email); ?></a></p>
 						<p><strong><?php echo esc_html__('Telefon:', 'lasertagpro-buchung'); ?></strong> <?php echo !empty($reservation->phone) ? esc_html($reservation->phone) : '<em>' . esc_html__('Nicht angegeben', 'lasertagpro-buchung') . '</em>'; ?></p>
+						
+						<?php if (!empty($reservation->phone)): ?>
+							<p style="background-color: #25D366; color: white; padding: 10px; border-radius: 4px; margin-top: 10px;">
+								<strong>📱 <?php echo esc_html__('Bestätigung per WhatsApp senden!', 'lasertagpro-buchung'); ?></strong><br>
+								<a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $reservation->phone); ?>" style="color: white;"><?php echo esc_html__('WhatsApp öffnen', 'lasertagpro-buchung'); ?> →</a>
+							</p>
+						<?php else: ?>
+							<p style="background-color: #2196F3; color: white; padding: 10px; border-radius: 4px; margin-top: 10px;">
+								<strong>📧 <?php echo esc_html__('Keine Telefonnummer - Bestätigung per E-Mail senden!', 'lasertagpro-buchung'); ?></strong>
+							</p>
+						<?php endif; ?>
 					</div>
 					
 					<?php if (!empty($reservation->message)): ?>
@@ -327,7 +338,12 @@ class LTB_Email {
 					<p><?php echo esc_html__('vielen Dank für Ihre Reservierungsanfrage!', 'lasertagpro-buchung'); ?></p>
 					
 					<div class="info-box">
-						<p><strong><?php echo esc_html__('Wichtig:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html__('Ihre Reservierung ist noch nicht bestätigt. Sie erhalten eine separate Bestätigungs-E-Mail, sobald wir Ihre Anfrage bearbeitet haben.', 'lasertagpro-buchung'); ?></p>
+						<p><strong><?php echo esc_html__('Wichtig:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html__('Ihre Reservierung ist noch nicht bestätigt.', 'lasertagpro-buchung'); ?></p>
+						<?php if (!empty($reservation->phone)): ?>
+							<p>📱 <strong><?php echo esc_html__('Die Bestätigung inkl. Anfahrtsplan wird per WhatsApp versendet!', 'lasertagpro-buchung'); ?></strong></p>
+						<?php else: ?>
+							<p>📧 <?php echo esc_html__('Sie erhalten eine Bestätigungs-E-Mail, sobald wir Ihre Anfrage bearbeitet haben.', 'lasertagpro-buchung'); ?></p>
+						<?php endif; ?>
 					</div>
 					
 					<div class="details">

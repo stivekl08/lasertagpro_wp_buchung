@@ -149,8 +149,12 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 					<input type="email" id="ltb-checkout-email" name="email" required>
 				</div>
 				<div class="ltb-form-group">
-					<label for="ltb-checkout-phone"><?php echo esc_html__('Telefon', 'lasertagpro-buchung'); ?></label>
-					<input type="tel" id="ltb-checkout-phone" name="phone">
+					<label for="ltb-checkout-phone"><?php echo esc_html__('Telefon/WhatsApp', 'lasertagpro-buchung'); ?> <span class="recommended"><?php echo esc_html__('(empfohlen)', 'lasertagpro-buchung'); ?></span></label>
+					<input type="tel" id="ltb-checkout-phone" name="phone" placeholder="+43 660 1234567">
+					<p class="ltb-whatsapp-hint">
+						<span class="ltb-whatsapp-icon">📱</span>
+						<?php echo esc_html__('Die Bestätigung inkl. Anfahrtsplan wird per WhatsApp versendet!', 'lasertagpro-buchung'); ?>
+					</p>
 				</div>
 				<div class="ltb-form-group">
 					<label for="ltb-checkout-message"><?php echo esc_html__('Nachricht', 'lasertagpro-buchung'); ?></label>
