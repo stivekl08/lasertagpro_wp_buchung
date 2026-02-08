@@ -100,9 +100,8 @@
 			if (prevDateBtn) prevDateBtn.addEventListener('click', () => this.navigateDate(-1));
 			if (nextDateBtn) nextDateBtn.addEventListener('click', () => this.navigateDate(1));
 			
-			// Kalender-Datepicker
+			// Kalender-Datepicker (jetzt sichtbares Input)
 			const dateInput = this.container.querySelector('.ltb-date-input');
-			const dateTrigger = this.container.querySelector('.ltb-date-picker-trigger');
 			if (dateInput) {
 				// Minimum-Datum auf heute setzen
 				const today = new Date();
@@ -123,31 +122,6 @@
 						console.log('Datum per Kalender gewählt:', this.formatDate(this.currentDate));
 					}
 				});
-				
-				// Desktop-Fix: Klick auf Container öffnet Kalender
-				if (dateTrigger) {
-					dateTrigger.addEventListener('click', (e) => {
-						// Nicht wenn direkt auf Input geklickt wurde
-						if (e.target === dateInput) return;
-						
-						console.log('Date-Trigger geklickt, öffne Kalender...');
-						
-						// Moderne Browser: showPicker()
-						if (typeof dateInput.showPicker === 'function') {
-							try {
-								dateInput.showPicker();
-							} catch (err) {
-								console.log('showPicker fehlgeschlagen, versuche focus/click');
-								dateInput.focus();
-								dateInput.click();
-							}
-						} else {
-							// Fallback für ältere Browser
-							dateInput.focus();
-							dateInput.click();
-						}
-					});
-				}
 			}
 
 			// Anderes Datum wählen Button
@@ -168,8 +142,6 @@
 				console.error('Checkout-Button NICHT gefunden!');
 			}
 
-			const promoBtn = this.container.querySelector('.ltb-btn-promo');
-			if (promoBtn) promoBtn.addEventListener('click', () => this.applyPromoCode());
 
 			// Checkout-Formular
 			const checkoutForm = this.container.querySelector('#ltb-checkout-form');
@@ -449,19 +421,6 @@
 		},
 
 		updateDateDisplay: function() {
-			const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-			const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-			
-			const dayName = days[this.currentDate.getDay()];
-			const day = this.currentDate.getDate();
-			const month = months[this.currentDate.getMonth()];
-			const year = this.currentDate.getFullYear();
-
-			const dateDisplay = this.container.querySelector('.ltb-date-display');
-			if (dateDisplay) {
-				dateDisplay.textContent = dayName + ', ' + day + '. ' + month + ' ' + year;
-			}
-			
 			// Date-Input synchronisieren
 			const dateInput = this.container.querySelector('.ltb-date-input');
 			if (dateInput) {
@@ -869,9 +828,7 @@
 				
 				// Rabatte verstecken
 				const discountEl = this.container.querySelector('.ltb-volume-discount');
-				const promoDiscountEl = this.container.querySelector('.ltb-promo-discount');
 				if (discountEl) discountEl.style.display = 'none';
-				if (promoDiscountEl) promoDiscountEl.style.display = 'none';
 				
 				return;
 			}
@@ -932,16 +889,6 @@
 			if (discountEl) discountEl.style.display = 'none';
 			if (discountAmountEl) discountAmountEl.textContent = '-€0.00';
 			
-			// Promo-Code-Rabatt
-			const promoDiscountEl = this.container.querySelector('.ltb-promo-discount');
-			const promoAmountEl = this.container.querySelector('.ltb-promo-amount');
-			if (total && typeof total === 'object' && total.promo_discount > 0) {
-				if (promoDiscountEl) promoDiscountEl.style.display = 'flex';
-				if (promoAmountEl) promoAmountEl.textContent = '-€' + total.promo_discount.toFixed(2);
-			} else {
-				if (promoDiscountEl) promoDiscountEl.style.display = 'none';
-				if (promoAmountEl) promoAmountEl.textContent = '-€0.00';
-			}
 		},
 
 		removeFromCart: function(itemId) {
@@ -973,7 +920,6 @@
 							subtotal: 0,
 							volume_discount: 0,
 							volume_discount_percent: 0,
-							promo_discount: 0,
 							total: 0,
 							game_count: 0
 						};
@@ -999,30 +945,6 @@
 			if (banner) {
 				banner.style.display = 'none';
 			}
-		},
-
-		applyPromoCode: function() {
-			const codeInput = this.container.querySelector('#ltb-promo-code');
-			if (!codeInput || !codeInput.value) return;
-
-			const formData = new FormData();
-			formData.append('action', 'ltb_validate_promo');
-			formData.append('nonce', ltbData.nonce);
-			formData.append('promo_code', codeInput.value);
-
-			fetch(ltbData.ajaxUrl, {
-				method: 'POST',
-				body: formData
-			})
-			.then(response => response.json())
-			.then(data => {
-				if (data.success) {
-					this.showMessage('success', 'Promo-Code erfolgreich angewendet!');
-					this.updateCart();
-				} else {
-					this.showMessage('error', data.data.message || 'Ungültiger Promo-Code.');
-				}
-			});
 		},
 
 		showCheckout: function() {
@@ -1059,11 +981,6 @@
 			const formData = new FormData(form);
 			formData.append('action', 'ltb_create_booking');
 			formData.append('nonce', ltbData.nonce);
-
-			const promoInput = this.container.querySelector('#ltb-promo-code');
-			if (promoInput && promoInput.value) {
-				formData.append('promo_code', promoInput.value);
-			}
 
 			// Validierung
 			const name = formData.get('name');

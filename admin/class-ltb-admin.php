@@ -16,12 +16,13 @@ class LTB_Admin {
 		add_action('admin_menu', array($this, 'add_admin_menu'));
 		add_action('admin_init', array($this, 'register_settings'));
 		add_action('admin_init', array($this, 'add_email_settings_to_general'));
-		add_action('admin_post_ltb_save_game_mode', array($this, 'save_game_mode'));
-		add_action('admin_post_ltb_delete_game_mode', array($this, 'delete_game_mode'));
 		add_action('admin_post_ltb_confirm_reservation', array($this, 'confirm_reservation'));
 		add_action('admin_post_ltb_cancel_reservation', array($this, 'cancel_reservation'));
 		add_action('admin_post_ltb_delete_reservation', array($this, 'delete_reservation'));
 		add_action('admin_post_ltb_create_reservation', array($this, 'create_reservation'));
+		add_action('admin_post_ltb_export_reservations', array($this, 'export_reservations'));
+		add_action('admin_post_ltb_import_reservations', array($this, 'import_reservations'));
+		add_action('admin_post_ltb_sync_reservations', array($this, 'sync_reservations'));
 	}
 
 	/**
@@ -49,15 +50,6 @@ class LTB_Admin {
 		
 		add_submenu_page(
 			'lasertagpro-buchung',
-			__('Spielmodi', 'lasertagpro-buchung'),
-			__('Spielmodi', 'lasertagpro-buchung'),
-			'manage_options',
-			'ltb-game-modes',
-			array($this, 'render_game_modes')
-		);
-		
-		add_submenu_page(
-			'lasertagpro-buchung',
 			__('Einstellungen', 'lasertagpro-buchung'),
 			__('Einstellungen', 'lasertagpro-buchung'),
 			'manage_options',
@@ -75,6 +67,7 @@ class LTB_Admin {
 		register_setting('ltb_settings', 'ltb_dav_password');
 		register_setting('ltb_settings', 'ltb_start_hour');
 		register_setting('ltb_settings', 'ltb_end_hour');
+		
 		register_setting('ltb_settings', 'ltb_min_players');
 		register_setting('ltb_settings', 'ltb_max_players', array(
 			'type' => 'integer',
@@ -90,6 +83,13 @@ class LTB_Admin {
 				return $value === 0 ? 0 : $value; // 0 = deaktiviert
 			},
 		));
+		
+		register_setting('ltb_settings', 'ltb_gotify_enabled');
+		register_setting('ltb_settings', 'ltb_gotify_url');
+		register_setting('ltb_settings', 'ltb_gotify_token');
+		register_setting('ltb_settings', 'ltb_telegram_enabled');
+		register_setting('ltb_settings', 'ltb_telegram_bot_token');
+		register_setting('ltb_settings', 'ltb_telegram_chat_id');
 	}
 
 	/**
@@ -192,87 +192,10 @@ class LTB_Admin {
 	}
 
 	/**
-	 * Spielmodi rendern
-	 */
-	public function render_game_modes() {
-		global $wpdb;
-		
-		$table = $wpdb->prefix . 'ltb_game_modes';
-		$game_modes = $wpdb->get_results("SELECT * FROM $table ORDER BY sort_order ASC, name ASC");
-		
-		include LTB_PLUGIN_DIR . 'admin/views/game-modes.php';
-	}
-
-	/**
 	 * Einstellungen rendern
 	 */
 	public function render_settings() {
 		include LTB_PLUGIN_DIR . 'admin/views/settings.php';
-	}
-
-	/**
-	 * Spielmodus speichern
-	 */
-	public function save_game_mode() {
-		if (!current_user_can('manage_options')) {
-			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
-		}
-		
-		check_admin_referer('ltb_game_mode');
-		
-		global $wpdb;
-		$table = $wpdb->prefix . 'ltb_game_modes';
-		
-		// Dauer von Minuten in Stunden umrechnen (für Datenbank)
-		$duration_minutes = absint($_POST['duration']);
-		$duration_hours = round($duration_minutes / 60, 2);
-		
-		$data = array(
-			'name' => sanitize_text_field($_POST['name']),
-			'description' => sanitize_textarea_field($_POST['description']),
-			'duration' => $duration_hours,
-			'price' => floatval($_POST['price']),
-			'price_weekend' => !empty($_POST['price_weekend']) ? floatval($_POST['price_weekend']) : null,
-			'is_private' => isset($_POST['is_private']) ? 1 : 0,
-			'private_game_extra_mo_do' => isset($_POST['private_game_extra_mo_do']) ? floatval($_POST['private_game_extra_mo_do']) : null,
-			'private_game_extra_fr_so' => isset($_POST['private_game_extra_fr_so']) ? floatval($_POST['private_game_extra_fr_so']) : null,
-			'min_players' => absint($_POST['min_players']),
-			'max_players' => absint($_POST['max_players']),
-			'is_bestseller' => isset($_POST['is_bestseller']) ? 1 : 0,
-			'active' => isset($_POST['active']) ? 1 : 0,
-			'sort_order' => absint($_POST['sort_order']),
-		);
-		
-		$format = array('%s', '%s', '%f', '%f', '%f', '%d', '%f', '%f', '%d', '%d', '%d', '%d', '%d');
-		
-		if (isset($_POST['id']) && !empty($_POST['id'])) {
-			$wpdb->update($table, $data, array('id' => absint($_POST['id'])), $format, array('%d'));
-		} else {
-			$wpdb->insert($table, $data, $format);
-		}
-		
-		wp_redirect(add_query_arg(array('page' => 'ltb-game-modes', 'saved' => '1'), admin_url('admin.php')));
-		exit;
-	}
-
-	/**
-	 * Spielmodus löschen
-	 */
-	public function delete_game_mode() {
-		if (!current_user_can('manage_options')) {
-			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
-		}
-		
-		check_admin_referer('ltb_delete_game_mode');
-		
-		global $wpdb;
-		$table = $wpdb->prefix . 'ltb_game_modes';
-		
-		$id = absint($_GET['id']);
-		$wpdb->delete($table, array('id' => $id));
-		
-		wp_redirect(add_query_arg(array('page' => 'ltb-game-modes', 'deleted' => '1'), admin_url('admin.php')));
-		exit;
 	}
 
 	/**
@@ -377,6 +300,169 @@ class LTB_Admin {
 		} else {
 			wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'created' => '1'), admin_url('admin.php')));
 		}
+		exit;
+	}
+
+	/**
+	 * Reservierungen exportieren
+	 */
+	public function export_reservations() {
+		if (!current_user_can('manage_options')) {
+			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
+		}
+		
+		check_admin_referer('ltb_export_reservations');
+		
+		$format = isset($_GET['format']) ? sanitize_text_field($_GET['format']) : 'csv';
+		$status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
+		$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : '';
+		$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : '';
+		
+		$args = array(
+			'status' => $status,
+			'date_from' => $date_from,
+			'date_to' => $date_to,
+		);
+		
+		if ($format === 'json') {
+			LTB_Export_Import::export_reservations_json($args);
+		} else {
+			LTB_Export_Import::export_reservations_csv($args);
+		}
+	}
+
+	/**
+	 * Reservierungen importieren
+	 */
+	public function import_reservations() {
+		if (!current_user_can('manage_options')) {
+			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
+		}
+		
+		check_admin_referer('ltb_import_reservations');
+		
+		if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+			wp_redirect(add_query_arg(array(
+				'page' => 'ltb-reservations',
+				'error' => urlencode(__('Fehler beim Hochladen der Datei.', 'lasertagpro-buchung'))
+			), admin_url('admin.php')));
+			exit;
+		}
+		
+		$file = $_FILES['import_file'];
+		$file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+		
+		if (!in_array($file_ext, array('csv', 'json'))) {
+			wp_redirect(add_query_arg(array(
+				'page' => 'ltb-reservations',
+				'error' => urlencode(__('Ungültiges Dateiformat. Nur CSV und JSON werden unterstützt.', 'lasertagpro-buchung'))
+			), admin_url('admin.php')));
+			exit;
+		}
+		
+		$upload_dir = wp_upload_dir();
+		$import_dir = $upload_dir['basedir'] . '/ltb-imports';
+		
+		if (!file_exists($import_dir)) {
+			wp_mkdir_p($import_dir);
+		}
+		
+		$file_path = $import_dir . '/' . sanitize_file_name($file['name']);
+		
+		if (!move_uploaded_file($file['tmp_name'], $file_path)) {
+			wp_redirect(add_query_arg(array(
+				'page' => 'ltb-reservations',
+				'error' => urlencode(__('Fehler beim Speichern der Datei.', 'lasertagpro-buchung'))
+			), admin_url('admin.php')));
+			exit;
+		}
+		
+		$options = array(
+			'skip_duplicates' => isset($_POST['skip_duplicates']) && $_POST['skip_duplicates'] === '1',
+			'update_existing' => isset($_POST['update_existing']) && $_POST['update_existing'] === '1',
+			'validate_data' => isset($_POST['validate_data']) && $_POST['validate_data'] === '1',
+		);
+		
+		if ($file_ext === 'json') {
+			$result = LTB_Export_Import::import_reservations_json($file_path, $options);
+		} else {
+			$result = LTB_Export_Import::import_reservations_csv($file_path, $options);
+		}
+		
+		// Datei löschen
+		@unlink($file_path);
+		
+		// Ergebnis als Query-Parameter übergeben
+		$query_args = array(
+			'page' => 'ltb-reservations',
+			'imported' => '1',
+			'success' => $result['success'],
+			'errors' => $result['errors'],
+			'skipped' => $result['skipped'],
+			'updated' => $result['updated'],
+		);
+		
+		if (!empty($result['messages'])) {
+			$query_args['messages'] = urlencode(implode(' | ', array_slice($result['messages'], 0, 10)));
+		}
+		
+		wp_redirect(add_query_arg($query_args, admin_url('admin.php')));
+		exit;
+	}
+
+	/**
+	 * Reservierungen mit Kalender synchronisieren
+	 */
+	public function sync_reservations() {
+		if (!current_user_can('manage_options')) {
+			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
+		}
+		
+		check_admin_referer('ltb_sync_reservations');
+		
+		$sync_direction = isset($_POST['sync_direction']) ? sanitize_text_field($_POST['sync_direction']) : 'to_calendar';
+		$date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+		$date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+		$status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+		$create_missing = isset($_POST['create_missing']) && $_POST['create_missing'] === '1';
+		$update_existing = isset($_POST['update_existing']) && $_POST['update_existing'] === '1';
+		
+		$options = array(
+			'date_from' => $date_from,
+			'date_to' => $date_to,
+			'status' => $status,
+			'create_missing' => $create_missing,
+			'update_existing' => $update_existing,
+		);
+		
+		if ($sync_direction === 'from_calendar') {
+			$result = LTB_Sync::sync_calendar_to_reservations($options);
+		} else {
+			$result = LTB_Sync::sync_reservations_to_calendar($options);
+		}
+		
+		$query_args = array(
+			'page' => 'ltb-reservations',
+			'synced' => '1',
+			'direction' => $sync_direction,
+		);
+		
+		if ($sync_direction === 'to_calendar') {
+			$query_args['created'] = $result['created'];
+			$query_args['updated'] = $result['updated'];
+			$query_args['errors'] = $result['errors'];
+			$query_args['skipped'] = $result['skipped'];
+		} else {
+			$query_args['found'] = $result['found'];
+			$query_args['created'] = $result['created'];
+			$query_args['errors'] = $result['errors'];
+		}
+		
+		if (!empty($result['messages'])) {
+			$query_args['messages'] = urlencode(implode(' | ', array_slice($result['messages'], 0, 10)));
+		}
+		
+		wp_redirect(add_query_arg($query_args, admin_url('admin.php')));
 		exit;
 	}
 }

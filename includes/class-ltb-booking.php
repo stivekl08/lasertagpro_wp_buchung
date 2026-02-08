@@ -76,29 +76,8 @@ class LTB_Booking {
 			'confirmation_token' => $token,
 		);
 		
-		// Volumenrabatt berechnen (wenn mehrere Buchungen im Warenkorb)
-		$cart = LTB_Cart::get_cart();
-		$game_count = count($cart) + 1; // +1 für aktuelle Buchung
-		$volume_discount = LTB_Pricing::calculate_volume_discount($game_count);
-		
-		if ($volume_discount['discount_percent'] > 0) {
-			$discount_data = LTB_Pricing::apply_discount($pricing['total_price'], $volume_discount['discount_percent']);
-			$insert_data['discount_percent'] = $volume_discount['discount_percent'];
-			$insert_data['discount_amount'] = $discount_data['discount_amount'];
-			$insert_data['total_price'] = $discount_data['final_price'];
-		}
-		
-		// Promo-Code verarbeiten, falls vorhanden
-		if (!empty($data['promo_code'])) {
-			$price_after_volume = $insert_data['total_price'];
-			$promo_result = LTB_Pricing::validate_promo_code($data['promo_code'], $price_after_volume);
-			if (!is_wp_error($promo_result)) {
-				$insert_data['promo_code'] = $promo_result['code'];
-				$insert_data['discount_amount'] = ($insert_data['discount_amount'] ?? 0) + $promo_result['discount_amount'];
-				$insert_data['total_price'] = $promo_result['final_price'];
-				LTB_Pricing::increment_promo_usage($promo_result['promo_id']);
-			}
-		}
+		// Volumenrabatt DEAKTIVIERT - Paketpreise sind fix
+		// Promo-Code DEAKTIVIERT
 		
 		$result = $wpdb->insert($table, $insert_data);
 		

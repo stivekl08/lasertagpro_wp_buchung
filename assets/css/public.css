@@ -419,22 +419,11 @@
 	outline: none;
 }
 
-.ltb-current-date {
+.ltb-date-navigation {
 	display: flex;
 	align-items: center;
+	justify-content: center;
 	gap: 1rem;
-	font-size: 1.25rem;
-	font-weight: 600;
-	position: relative;
-}
-
-.ltb-date-picker-trigger {
-	cursor: pointer;
-	padding: 0.75rem 1.5rem;
-	background: var(--ltb-dark-surface-light);
-	border: 2px solid var(--ltb-border);
-	border-radius: 0.5rem;
-	transition: all 0.2s;
 }
 
 .ltb-date-picker-trigger:hover {
@@ -447,14 +436,33 @@
 }
 
 .ltb-date-input {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	opacity: 0;
+	padding: 1rem 1.5rem;
+	background: var(--ltb-dark-surface-light);
+	border: 2px solid var(--ltb-border);
+	border-radius: 0.5rem;
+	color: var(--ltb-text);
+	font-size: 1.1rem;
+	font-weight: 600;
 	cursor: pointer;
-	z-index: 10;
+	min-width: 200px;
+	text-align: center;
+}
+
+.ltb-date-input:hover {
+	border-color: var(--ltb-primary);
+}
+
+.ltb-date-input:focus {
+	outline: none;
+	border-color: var(--ltb-primary);
+	box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.2);
+}
+
+/* Webkit date picker styling */
+.ltb-date-input::-webkit-calendar-picker-indicator {
+	cursor: pointer;
+	filter: invert(1);
+	font-size: 1.2rem;
 }
 
 .ltb-date-hint {
@@ -715,45 +723,6 @@
 	margin-top: 0.5rem;
 }
 
-.ltb-promo-section,
-.ltb-gift-card-section {
-	display: flex;
-	gap: 0.5rem;
-}
-
-.ltb-promo-input,
-.ltb-gift-card-input {
-	flex: 1;
-	padding: 0.75rem;
-	background-color: var(--ltb-dark-surface-light);
-	border: 2px solid var(--ltb-border);
-	border-radius: 0.25rem;
-	color: var(--ltb-text);
-	font-size: 0.875rem;
-}
-
-.ltb-promo-input:focus,
-.ltb-gift-card-input:focus {
-	outline: none;
-	border-color: var(--ltb-primary);
-}
-
-.ltb-btn-promo {
-	padding: 0.75rem 1rem;
-	background-color: var(--ltb-dark-surface-light);
-	border: 2px solid var(--ltb-border);
-	border-radius: 0.25rem;
-	color: var(--ltb-text);
-	cursor: pointer;
-	font-weight: 600;
-	transition: all 0.2s;
-}
-
-.ltb-btn-promo:hover {
-	background-color: var(--ltb-primary);
-	border-color: var(--ltb-primary);
-	color: white;
-}
 
 /* Step Actions */
 .ltb-step-actions {
@@ -911,23 +880,6 @@
 	color: var(--ltb-primary);
 	font-weight: normal;
 	font-size: 0.85rem;
-}
-
-.ltb-whatsapp-hint {
-	margin-top: 0.5rem;
-	padding: 0.75rem;
-	background: linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(37, 211, 102, 0.05) 100%);
-	border-left: 3px solid #25D366;
-	border-radius: 0.25rem;
-	font-size: 0.85rem;
-	color: var(--ltb-text);
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.ltb-whatsapp-icon {
-	font-size: 1.25rem;
 }
 
 .ltb-form-group input,

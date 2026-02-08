@@ -28,8 +28,6 @@ class LTB_Public {
 		add_action('wp_ajax_nopriv_ltb_remove_from_cart', array($this, 'ajax_remove_from_cart'));
 		add_action('wp_ajax_ltb_get_cart', array($this, 'ajax_get_cart'));
 		add_action('wp_ajax_nopriv_ltb_get_cart', array($this, 'ajax_get_cart'));
-		add_action('wp_ajax_ltb_validate_promo', array($this, 'ajax_validate_promo'));
-		add_action('wp_ajax_nopriv_ltb_validate_promo', array($this, 'ajax_validate_promo'));
 		add_action('wp_ajax_ltb_create_booking', array($this, 'ajax_create_booking'));
 		add_action('wp_ajax_nopriv_ltb_create_booking', array($this, 'ajax_create_booking'));
 	}
@@ -216,9 +214,8 @@ class LTB_Public {
 			session_start();
 		}
 		
-		$promo_code = isset($_POST['promo_code']) ? sanitize_text_field($_POST['promo_code']) : '';
 		$cart = LTB_Cart::get_cart();
-		$cart_total = LTB_Cart::calculate_total($promo_code);
+		$cart_total = LTB_Cart::calculate_total();
 		
 		// Cart als Array konvertieren (für JavaScript)
 		$cart_array = array_values($cart);
@@ -226,29 +223,6 @@ class LTB_Public {
 		wp_send_json_success(array(
 			'cart' => $cart_array,
 			'total' => $cart_total,
-		));
-	}
-
-	/**
-	 * AJAX: Promo-Code validieren
-	 */
-	public function ajax_validate_promo() {
-		check_ajax_referer('ltb_nonce', 'nonce');
-		
-		$code = sanitize_text_field($_POST['promo_code']);
-		$cart_total = LTB_Cart::calculate_total();
-		
-		$result = LTB_Pricing::validate_promo_code($code, $cart_total['total']);
-		
-		if (is_wp_error($result)) {
-			wp_send_json_error(array('message' => $result->get_error_message()));
-		}
-		
-		$new_total = LTB_Cart::calculate_total($code);
-		
-		wp_send_json_success(array(
-			'message' => __('Promo-Code erfolgreich angewendet.', 'lasertagpro-buchung'),
-			'total' => $new_total,
 		));
 	}
 
@@ -283,7 +257,6 @@ class LTB_Public {
 		$email = sanitize_email($_POST['email']);
 		$phone = sanitize_text_field($_POST['phone']);
 		$message = sanitize_textarea_field($_POST['message']);
-		$promo_code = isset($_POST['promo_code']) ? sanitize_text_field($_POST['promo_code']) : '';
 		
 		// E-Mail-Validierung
 		if (!is_email($email)) {
@@ -309,7 +282,6 @@ class LTB_Public {
 				'message' => $message,
 				'person_count' => $item['person_count'],
 				'game_mode' => $item['game_mode'],
-				'promo_code' => $promo_code,
 			);
 			
 			$result = LTB_Booking::create_reservation($data);

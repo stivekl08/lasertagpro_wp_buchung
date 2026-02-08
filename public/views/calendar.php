@@ -65,14 +65,9 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 			<h2 class="ltb-step-title">3. <?php echo esc_html__('Wähle ein Datum', 'lasertagpro-buchung'); ?></h2>
 			<div class="ltb-date-navigation">
 				<button type="button" class="ltb-nav-btn ltb-prev-date" aria-label="<?php echo esc_attr__('Vorheriger Tag', 'lasertagpro-buchung'); ?>">‹</button>
-				<div class="ltb-current-date ltb-date-picker-trigger">
-					<span class="ltb-date-display"></span>
-					<span class="ltb-calendar-icon">📅</span>
-					<input type="date" class="ltb-date-input" aria-label="<?php echo esc_attr__('Datum wählen', 'lasertagpro-buchung'); ?>">
-				</div>
+				<input type="date" id="ltb-date-input" class="ltb-date-input" aria-label="<?php echo esc_attr__('Datum wählen', 'lasertagpro-buchung'); ?>">
 				<button type="button" class="ltb-nav-btn ltb-next-date" aria-label="<?php echo esc_attr__('Nächster Tag', 'lasertagpro-buchung'); ?>">›</button>
 			</div>
-			<p class="ltb-date-hint"><?php echo esc_html__('Klicke auf das Datum für Kalender-Auswahl', 'lasertagpro-buchung'); ?></p>
 			<div class="ltb-step-actions">
 				<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="2"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
 				<button type="button" class="ltb-btn-primary ltb-next-step" data-next="4"><?php echo esc_html__('Weiter', 'lasertagpro-buchung'); ?></button>
@@ -111,10 +106,6 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 					<span><?php echo esc_html__('Rabatt', 'lasertagpro-buchung'); ?>:</span>
 					<span class="ltb-discount-amount">-€0.00</span>
 				</div>
-				<div class="ltb-cart-line ltb-promo-discount" style="display: none;">
-					<span><?php echo esc_html__('Promo-Code', 'lasertagpro-buchung'); ?>:</span>
-					<span class="ltb-promo-amount">-€0.00</span>
-				</div>
 				<div class="ltb-cart-total">
 					<span><?php echo esc_html__('Gesamt', 'lasertagpro-buchung'); ?>:</span>
 					<span class="ltb-total-amount">€0.00</span>
@@ -122,13 +113,6 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 				<div class="ltb-per-person">
 					<span class="ltb-per-person-amount">€0.00</span> <?php echo esc_html__('pro Spieler', 'lasertagpro-buchung'); ?>
 				</div>
-			</div>
-			<div class="ltb-promo-section">
-				<input type="text" class="ltb-promo-input" placeholder="<?php echo esc_attr__('Promo-Code hinzufügen', 'lasertagpro-buchung'); ?>" id="ltb-promo-code">
-				<button type="button" class="ltb-btn-promo"><?php echo esc_html__('Anwenden', 'lasertagpro-buchung'); ?></button>
-			</div>
-			<div class="ltb-gift-card-section">
-				<input type="text" class="ltb-gift-card-input" placeholder="<?php echo esc_attr__('Geschenkkarte hinzufügen', 'lasertagpro-buchung'); ?>">
 			</div>
 			<button type="button" class="ltb-btn-checkout" disabled><?php echo esc_html__('Bestellung abschließen', 'lasertagpro-buchung'); ?></button>
 		</div>
@@ -149,12 +133,8 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 					<input type="email" id="ltb-checkout-email" name="email" required>
 				</div>
 				<div class="ltb-form-group">
-					<label for="ltb-checkout-phone"><?php echo esc_html__('Telefon/WhatsApp', 'lasertagpro-buchung'); ?> <span class="recommended"><?php echo esc_html__('(empfohlen)', 'lasertagpro-buchung'); ?></span></label>
+					<label for="ltb-checkout-phone"><?php echo esc_html__('Telefon', 'lasertagpro-buchung'); ?> <span class="recommended"><?php echo esc_html__('(optional)', 'lasertagpro-buchung'); ?></span></label>
 					<input type="tel" id="ltb-checkout-phone" name="phone" placeholder="+43 660 1234567">
-					<p class="ltb-whatsapp-hint">
-						<span class="ltb-whatsapp-icon">📱</span>
-						<?php echo esc_html__('Die Bestätigung inkl. Anfahrtsplan wird per WhatsApp versendet!', 'lasertagpro-buchung'); ?>
-					</p>
 				</div>
 				<div class="ltb-form-group">
 					<label for="ltb-checkout-message"><?php echo esc_html__('Nachricht', 'lasertagpro-buchung'); ?></label>

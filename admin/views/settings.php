@@ -36,6 +36,56 @@ if (isset($_GET['settings-updated'])) {
 			</tr>
 		</table>
 		
+		<h2><?php echo esc_html__('Benachrichtigungen', 'lasertagpro-buchung'); ?></h2>
+		<table class="form-table">
+			<tr>
+				<th><label><?php echo esc_html__('Gotify', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<label>
+						<input type="checkbox" id="ltb_gotify_enabled" name="ltb_gotify_enabled" value="1" <?php checked(get_option('ltb_gotify_enabled', false)); ?>>
+						<?php echo esc_html__('Gotify-Benachrichtigungen aktivieren', 'lasertagpro-buchung'); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_gotify_url"><?php echo esc_html__('Gotify-URL', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="url" id="ltb_gotify_url" name="ltb_gotify_url" value="<?php echo esc_attr(get_option('ltb_gotify_url')); ?>" class="regular-text" placeholder="https://gotify.example.com">
+					<p class="description"><?php echo esc_html__('Die URL zu Ihrem Gotify-Server (ohne trailing slash)', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_gotify_token"><?php echo esc_html__('Gotify-Token', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="text" id="ltb_gotify_token" name="ltb_gotify_token" value="<?php echo esc_attr(get_option('ltb_gotify_token')); ?>" class="regular-text">
+					<p class="description"><?php echo esc_html__('Das Application Token von Gotify', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label><?php echo esc_html__('Telegram', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<label>
+						<input type="checkbox" id="ltb_telegram_enabled" name="ltb_telegram_enabled" value="1" <?php checked(get_option('ltb_telegram_enabled', false)); ?>>
+						<?php echo esc_html__('Telegram-Benachrichtigungen aktivieren', 'lasertagpro-buchung'); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_telegram_bot_token"><?php echo esc_html__('Telegram Bot Token', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="text" id="ltb_telegram_bot_token" name="ltb_telegram_bot_token" value="<?php echo esc_attr(get_option('ltb_telegram_bot_token')); ?>" class="regular-text">
+					<p class="description"><?php echo esc_html__('Das Bot Token von @BotFather', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_telegram_chat_id"><?php echo esc_html__('Telegram Chat ID', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="text" id="ltb_telegram_chat_id" name="ltb_telegram_chat_id" value="<?php echo esc_attr(get_option('ltb_telegram_chat_id')); ?>" class="regular-text">
+					<p class="description"><?php echo esc_html__('Die Chat-ID, an die Benachrichtigungen gesendet werden sollen (z.B. -1001234567890 oder 123456789)', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+		</table>
+		
 		<h2><?php echo esc_html__('Buchungszeiten', 'lasertagpro-buchung'); ?></h2>
 		<table class="form-table">
 			<tr>

@@ -51,6 +51,9 @@ class LTB_Email {
 		// *** ADMIN-BENACHRICHTIGUNG SENDEN ***
 		self::send_admin_notification($reservation);
 		
+		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
+		LTB_Notifications::notify_new_reservation($reservation);
+		
 		// Alle Outputs sammeln und löschen
 		$output = ob_get_clean();
 		
@@ -140,17 +143,6 @@ class LTB_Email {
 						<p><strong><?php echo esc_html__('Name:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($reservation->name); ?></p>
 						<p><strong><?php echo esc_html__('E-Mail:', 'lasertagpro-buchung'); ?></strong> <a href="mailto:<?php echo esc_attr($reservation->email); ?>"><?php echo esc_html($reservation->email); ?></a></p>
 						<p><strong><?php echo esc_html__('Telefon:', 'lasertagpro-buchung'); ?></strong> <?php echo !empty($reservation->phone) ? esc_html($reservation->phone) : '<em>' . esc_html__('Nicht angegeben', 'lasertagpro-buchung') . '</em>'; ?></p>
-						
-						<?php if (!empty($reservation->phone)): ?>
-							<p style="background-color: #25D366; color: white; padding: 10px; border-radius: 4px; margin-top: 10px;">
-								<strong>📱 <?php echo esc_html__('Bestätigung per WhatsApp senden!', 'lasertagpro-buchung'); ?></strong><br>
-								<a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $reservation->phone); ?>" style="color: white;"><?php echo esc_html__('WhatsApp öffnen', 'lasertagpro-buchung'); ?> →</a>
-							</p>
-						<?php else: ?>
-							<p style="background-color: #2196F3; color: white; padding: 10px; border-radius: 4px; margin-top: 10px;">
-								<strong>📧 <?php echo esc_html__('Keine Telefonnummer - Bestätigung per E-Mail senden!', 'lasertagpro-buchung'); ?></strong>
-							</p>
-						<?php endif; ?>
 					</div>
 					
 					<?php if (!empty($reservation->message)): ?>
@@ -220,6 +212,9 @@ class LTB_Email {
 		
 		$result = wp_mail($to, $subject, $message, $headers);
 		
+		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
+		LTB_Notifications::notify_confirmed_reservation($reservation);
+		
 		// Alle Outputs sammeln und löschen
 		$output = ob_get_clean();
 		
@@ -277,6 +272,9 @@ class LTB_Email {
 		ob_start();
 		
 		$result = wp_mail($to, $subject, $message, $headers);
+		
+		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
+		LTB_Notifications::notify_cancelled_reservation($reservation);
 		
 		// Alle Outputs sammeln und löschen
 		$output = ob_get_clean();
@@ -339,11 +337,7 @@ class LTB_Email {
 					
 					<div class="info-box">
 						<p><strong><?php echo esc_html__('Wichtig:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html__('Ihre Reservierung ist noch nicht bestätigt.', 'lasertagpro-buchung'); ?></p>
-						<?php if (!empty($reservation->phone)): ?>
-							<p>📱 <strong><?php echo esc_html__('Die Bestätigung inkl. Anfahrtsplan wird per WhatsApp versendet!', 'lasertagpro-buchung'); ?></strong></p>
-						<?php else: ?>
-							<p>📧 <?php echo esc_html__('Sie erhalten eine Bestätigungs-E-Mail, sobald wir Ihre Anfrage bearbeitet haben.', 'lasertagpro-buchung'); ?></p>
-						<?php endif; ?>
+						<p>📧 <?php echo esc_html__('Sie erhalten eine Bestätigungs-E-Mail, sobald wir Ihre Anfrage bearbeitet haben.', 'lasertagpro-buchung'); ?></p>
 					</div>
 					
 					<div class="details">
