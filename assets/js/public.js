@@ -635,6 +635,9 @@
 			const slotEl = document.createElement('div');
 			slotEl.className = 'ltb-time-slot';
 			slotEl.dataset.slot = JSON.stringify(slot);
+			// Tastatur-Navigation und Screenreader-Unterstützung
+			slotEl.setAttribute('role', 'button');
+			slotEl.setAttribute('tabindex', '0');
 
 			// Startzeit
 			const startTimeStr = slot.start.split(' ')[1].substring(0, 5);
@@ -672,11 +675,24 @@
 				<div class="ltb-slot-availability">0/24 ${ltbData.strings.players || 'Spieler'}</div>
 			`;
 
+			// Lesbarkeit für Screenreader
+			slotEl.setAttribute('aria-label',
+				`Zeitslot ${timeDisplay}, ${durationText}, €${priceNum.toFixed(2)} pro Person – auswählen`
+			);
+
 			slotEl.addEventListener('click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 				console.log('Slot geklickt, aktueller Schritt:', this.currentStep);
 				this.selectTimeSlot(slot, pricing);
+			});
+
+			// Tastatur-Aktivierung (Enter / Leertaste)
+			slotEl.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					this.selectTimeSlot(slot, pricing);
+				}
 			});
 
 			return slotEl;
@@ -949,6 +965,13 @@
 			console.log('Modal gefunden:', modal);
 			if (modal) {
 				modal.style.display = 'flex';
+				// Focus auf erstes Formularfeld setzen
+				const firstInput = modal.querySelector('input, button, textarea, select');
+				if (firstInput) {
+					firstInput.focus();
+				}
+				// Trigger-Button merken für Rücknavigation
+				this._checkoutTrigger = document.activeElement;
 				console.log('Modal angezeigt');
 			} else {
 				console.error('Modal NICHT gefunden!');
@@ -963,6 +986,10 @@
 				const form = modal.querySelector('#ltb-checkout-form');
 				if (form) {
 					form.reset();
+				}
+				// Focus zurück auf den Checkout-Button
+				if (this._checkoutTrigger && this._checkoutTrigger.focus) {
+					this._checkoutTrigger.focus();
 				}
 			}
 		},
@@ -1054,13 +1081,39 @@
 			const messageEl = this.container.querySelector('.ltb-message');
 			if (!messageEl) return;
 
-			messageEl.className = 'ltb-message ltb-message-' + type;
-			messageEl.textContent = message;
-			messageEl.style.display = 'block';
+			// Technische Netzwerkfehler in nutzerfreundliches Deutsch übersetzen
+			if (type === 'error') {
+				if (/fetch|network|failed to fetch|networkerror/i.test(message)) {
+					message = 'Netzwerkfehler – bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
+				} else if (/timeout/i.test(message)) {
+					message = 'Zeitüberschreitung – der Server antwortet nicht. Bitte versuchen Sie es erneut.';
+				}
+			}
 
-			setTimeout(() => {
+			// Close-Button nur bei Fehlern
+			const closeBtn = type === 'error'
+				? '<button class="ltb-message-close" aria-label="Meldung schließen" type="button">×</button>'
+				: '';
+
+			messageEl.className = 'ltb-message ltb-message-' + type;
+			messageEl.innerHTML = '<span class="ltb-message-text">' + message + '</span>' + closeBtn;
+			messageEl.style.display = 'flex';
+
+			// Close-Button Handler
+			const closeBtnEl = messageEl.querySelector('.ltb-message-close');
+			if (closeBtnEl) {
+				closeBtnEl.addEventListener('click', () => {
+					messageEl.style.display = 'none';
+					clearTimeout(this._messageTimeout);
+				});
+			}
+
+			// Fehler bleiben 10 Sekunden, Erfolg/Info 5 Sekunden sichtbar
+			clearTimeout(this._messageTimeout);
+			const timeout = type === 'error' ? 10000 : 5000;
+			this._messageTimeout = setTimeout(() => {
 				messageEl.style.display = 'none';
-			}, 5000);
+			}, timeout);
 		}
 	};
 

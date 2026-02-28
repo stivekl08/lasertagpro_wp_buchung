@@ -124,10 +124,14 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 	</div>
 
 	<!-- Checkout-Formular (Modal) -->
-	<div class="ltb-checkout-modal" style="display: none;">
+	<div class="ltb-checkout-modal"
+		 style="display: none;"
+		 role="dialog"
+		 aria-modal="true"
+		 aria-labelledby="ltb-checkout-title">
 		<div class="ltb-modal-content">
 			<button type="button" class="ltb-modal-close" aria-label="<?php echo esc_attr__('Schließen', 'lasertagpro-buchung'); ?>">×</button>
-			<h2><?php echo esc_html__('Bestellung abschließen', 'lasertagpro-buchung'); ?></h2>
+			<h2 id="ltb-checkout-title"><?php echo esc_html__('Bestellung abschließen', 'lasertagpro-buchung'); ?></h2>
 			<form id="ltb-checkout-form" class="ltb-checkout-form">
 				<div class="ltb-form-group">
 					<label for="ltb-checkout-name"><?php echo esc_html__('Name', 'lasertagpro-buchung'); ?> <span class="required">*</span></label>
