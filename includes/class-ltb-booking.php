@@ -373,6 +373,48 @@ class LTB_Booking {
 	}
 
 	/**
+	 * Anzahl der Reservierungen zählen (für Paginierung)
+	 *
+	 * @param array $args Filter-Argumente (status, date_from, date_to)
+	 * @return int Anzahl
+	 */
+	public static function count_reservations($args = array()) {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ltb_reservations';
+
+		$defaults = array(
+			'status'    => '',
+			'date_from' => '',
+			'date_to'   => '',
+		);
+		$args = wp_parse_args($args, $defaults);
+
+		$where        = array('1=1');
+		$where_values = array();
+
+		if (!empty($args['status'])) {
+			$where[]        = 'status = %s';
+			$where_values[] = $args['status'];
+		}
+		if (!empty($args['date_from'])) {
+			$where[]        = 'booking_date >= %s';
+			$where_values[] = $args['date_from'];
+		}
+		if (!empty($args['date_to'])) {
+			$where[]        = 'booking_date <= %s';
+			$where_values[] = $args['date_to'];
+		}
+
+		$where_clause = implode(' AND ', $where);
+		if (!empty($where_values)) {
+			$where_clause = $wpdb->prepare($where_clause, $where_values);
+		}
+
+		return (int) $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE $where_clause");
+	}
+
+	/**
 	 * Alle Reservierungen abrufen
 	 *
 	 * @param array $args Filter-Argumente

@@ -266,26 +266,26 @@ class LTB_Public {
 		
 		// Cart als Array konvertieren (falls assoziatives Array)
 		$cart = array_values($cart);
-		
-		$errors = array();
+
+		$errors        = array();
 		$success_count = 0;
-		
+
 		// Alle Artikel im Warenkorb buchen
 		foreach ($cart as $item) {
 			$data = array(
-				'booking_date' => $item['booking_date'],
-				'start_time' => $item['start_time'],
+				'booking_date'     => $item['booking_date'],
+				'start_time'       => $item['start_time'],
 				'booking_duration' => $item['booking_duration'],
-				'name' => $name,
-				'email' => $email,
-				'phone' => $phone,
-				'message' => $message,
-				'person_count' => $item['person_count'],
-				'game_mode' => $item['game_mode'],
+				'name'             => $name,
+				'email'            => $email,
+				'phone'            => $phone,
+				'message'          => $message,
+				'person_count'     => $item['person_count'],
+				'game_mode'        => $item['game_mode'],
 			);
-			
+
 			$result = LTB_Booking::create_reservation($data);
-			
+
 			if (is_wp_error($result)) {
 				$errors[] = $result->get_error_message();
 			} else {
