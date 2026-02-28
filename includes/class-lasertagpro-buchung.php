@@ -137,15 +137,20 @@ class LaserTagPro_Buchung {
 		$inquiry_threshold = ($inquiry_threshold === '' || $inquiry_threshold === null) ? 0 : absint($inquiry_threshold);
 		
 		wp_localize_script('ltb-public-script', 'ltbData', array(
-			'ajaxUrl' => admin_url('admin-ajax.php'),
-			'nonce' => wp_create_nonce('ltb_nonce'),
-			'minPlayers' => absint(get_option('ltb_min_players', 1)),
-			'maxPlayers' => $max_players, // 0 = keine Beschränkung
-			'inquiryThreshold' => $inquiry_threshold, // 0 = deaktiviert
-			'strings' => array(
-				'loading' => __('Lädt...', 'lasertagpro-buchung'),
-				'error' => __('Ein Fehler ist aufgetreten.', 'lasertagpro-buchung'),
-				'success' => __('Buchung erfolgreich!', 'lasertagpro-buchung'),
+			'ajaxUrl'          => admin_url('admin-ajax.php'),
+			'nonce'            => wp_create_nonce('ltb_nonce'),
+			'minPlayers'       => absint(get_option('ltb_min_players', 1)),
+			'maxPlayers'       => $max_players,
+			'inquiryThreshold' => $inquiry_threshold,
+			'prices'           => array(
+				1 => (float) get_option('ltb_price_1h', 25.00),
+				2 => (float) get_option('ltb_price_2h', 35.00),
+				3 => (float) get_option('ltb_price_3h', 45.00),
+			),
+			'strings'          => array(
+				'loading'         => __('Lädt...', 'lasertagpro-buchung'),
+				'error'           => __('Ein Fehler ist aufgetreten.', 'lasertagpro-buchung'),
+				'success'         => __('Buchung erfolgreich!', 'lasertagpro-buchung'),
 				'inquiryRequired' => __('Bei dieser Spieleranzahl benötigen wir weitere Details. Bitte füllen Sie das Nachrichtenfeld aus.', 'lasertagpro-buchung'),
 			)
 		));

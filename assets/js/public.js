@@ -575,14 +575,10 @@
 			console.log('Slots gerendert und sortiert:', slotElements.length);
 		},
 		
-		// Preis pro Person basierend auf gewähltem Paket
+		// Preis pro Person basierend auf gewähltem Paket (aus Admin-Einstellungen via ltbData)
 		calculatePricePerPerson: function() {
-			switch (this.selectedDuration) {
-				case 1: return 25.00;  // 60 Min
-				case 2: return 35.00;  // 120 Min
-				case 3: return 45.00;  // 180 Min
-				default: return 25.00;
-			}
+			const prices = (ltbData && ltbData.prices) ? ltbData.prices : { 1: 25, 2: 35, 3: 45 };
+			return parseFloat(prices[this.selectedDuration] || prices[1] || 25);
 		},
 
 		fetchSlotPricing: function(slot) {
