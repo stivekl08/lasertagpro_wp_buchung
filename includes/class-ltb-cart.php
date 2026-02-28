@@ -91,60 +91,35 @@ class LTB_Cart {
 		if (!session_id() && !headers_sent()) {
 			session_start();
 		}
-		
+
 		unset($_SESSION['ltb_cart']);
 	}
 
 	/**
 	 * Warenkorb-Gesamtsumme berechnen
 	 *
-	 * @param string $promo_code Optional: Promo-Code
-	 * @return array Gesamtsumme mit Rabatten
+	 * @return array Gesamtsumme
 	 */
-	public static function calculate_total($promo_code = '') {
+	public static function calculate_total() {
 		$cart = self::get_cart();
-		
+
 		if (empty($cart)) {
 			return array(
-				'subtotal' => 0,
-				'volume_discount' => 0,
-				'volume_discount_percent' => 0,
-				'promo_discount' => 0,
-				'total' => 0,
+				'subtotal'   => 0,
+				'total'      => 0,
+				'game_count' => 0,
 			);
 		}
-		
-		// Zwischensumme
-		$subtotal = 0;
+
+		$subtotal   = 0;
+		$game_count = count($cart);
 		foreach ($cart as $item) {
 			$subtotal += $item['total_price'];
 		}
-		
-		// Volumenrabatt DEAKTIVIERT - keine automatischen Rabatte
-		$game_count = count($cart);
-		$volume_discount_info = array('discount_percent' => 0);
-		$volume_discount_data = array('discount_amount' => 0, 'final_price' => $subtotal);
-		
-		$price_after_volume = $subtotal;
-		
-		// Promo-Code-Rabatt
-		$promo_discount = 0;
-		if (!empty($promo_code)) {
-			$promo_result = LTB_Pricing::validate_promo_code($promo_code, $price_after_volume);
-			if (!is_wp_error($promo_result)) {
-				$promo_discount = $promo_result['discount_amount'];
-			}
-		}
-		
-		$total = $price_after_volume - $promo_discount;
-		
+
 		return array(
-			'subtotal' => $subtotal,
-			'volume_discount' => 0, // DEAKTIVIERT - keine automatischen Rabatte
-			'volume_discount_percent' => 0, // DEAKTIVIERT
-			'promo_discount' => $promo_discount,
-			'promo_code' => $promo_code,
-			'total' => max(0, $total),
+			'subtotal'   => $subtotal,
+			'total'      => $subtotal,
 			'game_count' => $game_count,
 		);
 	}

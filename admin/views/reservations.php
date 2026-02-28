@@ -174,6 +174,28 @@ if (!defined('ABSPATH')) {
 		</div>
 	</form>
 	
+	<div class="tablenav top">
+		<div class="tablenav-pages">
+			<?php if ($total_pages > 1): ?>
+				<?php echo paginate_links(array(
+					'base'      => add_query_arg('paged', '%#%'),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+					'current'   => $paged,
+				)); ?>
+			<?php endif; ?>
+		</div>
+		<p class="displaying-num">
+			<?php printf(
+				esc_html__('%d Reservierungen gesamt', 'lasertagpro-buchung'),
+				$total_count
+			); ?>
+		</p>
+		<br class="clear">
+	</div>
+
 	<table class="wp-list-table widefat fixed striped">
 		<thead>
 			<tr>
@@ -236,6 +258,23 @@ if (!defined('ABSPATH')) {
 			<?php endif; ?>
 		</tbody>
 	</table>
+
+	<?php if ($total_pages > 1): ?>
+	<div class="tablenav bottom">
+		<div class="tablenav-pages">
+			<?php echo paginate_links(array(
+				'base'      => add_query_arg('paged', '%#%'),
+				'format'    => '',
+				'prev_text' => '&laquo;',
+				'next_text' => '&raquo;',
+				'total'     => $total_pages,
+				'current'   => $paged,
+			)); ?>
+		</div>
+		<br class="clear">
+	</div>
+	<?php endif; ?>
+
 	<?php endif; ?>
 </div>
 

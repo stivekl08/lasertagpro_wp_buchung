@@ -16,40 +16,47 @@ class LTB_Booking {
 	 * @return int|WP_Error Reservierungs-ID oder Fehler
 	 */
 	public static function create_reservation($data) {
-		// Output-Buffer sicherstellen (falls nicht bereits aktiv)
-		$buffer_started = ob_get_level() > 0;
-		if (!$buffer_started) {
-			ob_start();
-		}
-		
 		global $wpdb;
-		
+
 		$table = $wpdb->prefix . 'ltb_reservations';
-		
+
 		// Validierung
 		$errors = self::validate_booking_data($data);
 		if (!empty($errors)) {
 			return new WP_Error('validation_error', implode(', ', $errors));
 		}
-		
-		// Verfügbarkeit prüfen (NUR DAV-Kalender)
-		// Die Datenbank wird nur für die Speicherung verwendet, nicht für die Verfügbarkeitsprüfung
+
+		// Vorab-Verfügbarkeitsprüfung (DAV + DB)
 		$is_available = self::check_availability($data['booking_date'], $data['start_time'], $data['booking_duration']);
 		if (!$is_available) {
 			return new WP_Error('not_available', __('Der gewählte Termin ist nicht mehr verfügbar.', 'lasertagpro-buchung'));
 		}
-		
+
+		// Advisory Lock gegen Race Conditions bei gleichzeitigen Buchungen
+		$lock_key = 'ltb_' . md5($data['booking_date'] . '_' . $data['start_time']);
+		$lock_acquired = $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 10)", $lock_key));
+
+		if ($lock_acquired !== '1') {
+			return new WP_Error('lock_failed', __('Der Termin wird gerade gebucht. Bitte versuchen Sie es in einem Moment erneut.', 'lasertagpro-buchung'));
+		}
+
+		// DB-Verfügbarkeitsprüfung innerhalb des Locks (verhindert Race Condition)
+		if (!self::check_availability_db_only($data['booking_date'], $data['start_time'], $data['booking_duration'])) {
+			$wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_key));
+			return new WP_Error('not_available', __('Der Termin wurde soeben von jemand anderem gebucht. Bitte wählen Sie einen anderen Termin.', 'lasertagpro-buchung'));
+		}
+
 		// Endzeit berechnen
 		$start_datetime = $data['booking_date'] . ' ' . $data['start_time'];
 		$start_obj = new DateTime($start_datetime);
 		$end_obj = clone $start_obj;
 		$end_obj->modify('+' . $data['booking_duration'] . ' hours');
 		$end_time = $end_obj->format('H:i:s');
-		
+
 		// Confirmation Token generieren
 		$token = bin2hex(random_bytes(32));
-		
-		// Preis berechnen (mit Dauer)
+
+		// Preis serverseitig berechnen (niemals vom Frontend übernehmen)
 		$duration = isset($data['booking_duration']) ? absint($data['booking_duration']) : 1;
 		$pricing = LTB_Pricing::calculate_slot_price(
 			$data['booking_date'],
@@ -57,36 +64,36 @@ class LTB_Booking {
 			$data['person_count'],
 			$duration
 		);
-		
+
 		// Daten vorbereiten
 		$insert_data = array(
-			'booking_date' => sanitize_text_field($data['booking_date']),
-			'booking_duration' => absint($data['booking_duration']),
-			'start_time' => sanitize_text_field($data['start_time']),
-			'end_time' => $end_time,
-			'name' => sanitize_text_field($data['name']),
-			'email' => sanitize_email($data['email']),
-			'phone' => sanitize_text_field($data['phone']),
-			'message' => sanitize_textarea_field($data['message']),
-			'person_count' => absint($data['person_count']),
-			'game_mode' => sanitize_text_field($data['game_mode']),
-			'price_per_person' => $pricing['price_per_person'],
-			'total_price' => $pricing['total_price'],
-			'status' => 'pending',
+			'booking_date'      => sanitize_text_field($data['booking_date']),
+			'booking_duration'  => absint($data['booking_duration']),
+			'start_time'        => sanitize_text_field($data['start_time']),
+			'end_time'          => $end_time,
+			'name'              => sanitize_text_field($data['name']),
+			'email'             => sanitize_email($data['email']),
+			'phone'             => sanitize_text_field($data['phone']),
+			'message'           => sanitize_textarea_field($data['message']),
+			'person_count'      => absint($data['person_count']),
+			'game_mode'         => sanitize_text_field($data['game_mode']),
+			'price_per_person'  => $pricing['price_per_person'],
+			'total_price'       => $pricing['total_price'],
+			'status'            => 'pending',
 			'confirmation_token' => $token,
 		);
-		
-		// Volumenrabatt DEAKTIVIERT - Paketpreise sind fix
-		// Promo-Code DEAKTIVIERT
-		
+
 		$result = $wpdb->insert($table, $insert_data);
-		
+
+		// Lock sofort nach dem Insert freigeben
+		$wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_key));
+
 		if ($result === false) {
 			return new WP_Error('db_error', __('Fehler beim Speichern der Reservierung.', 'lasertagpro-buchung'));
 		}
-		
+
 		$reservation_id = $wpdb->insert_id;
-		
+
 		// Event im DAV-Kalender erstellen
 		$dav_client = new LTB_DAV_Client();
 		$summary = 'BELEGT - ' . sanitize_text_field($data['name']) . ' (' . absint($data['person_count']) . ' Personen)';
@@ -96,24 +103,18 @@ class LTB_Booking {
 			$data['booking_duration'],
 			$summary
 		);
-		
+
 		if (is_wp_error($dav_result)) {
-			// Fehler beim Erstellen des Kalender-Events loggen, aber Buchung trotzdem speichern
-			error_log('LTB Booking: Fehler beim Erstellen des DAV-Events: ' . $dav_result->get_error_message());
+			$error_msg = $dav_result->get_error_message();
+			error_log('LTB Booking: Fehler beim Erstellen des DAV-Events für Reservierung #' . $reservation_id . ': ' . $error_msg);
+			self::notify_admin_dav_sync_failed($reservation_id, $error_msg);
 		}
-		
-		// Reservierungsanfrage-E-Mail senden (nicht Bestätigung!)
-		// E-Mail-Versand verzögern, damit er nicht die AJAX-Response blockiert
-		// Verwende wp_schedule_single_event für asynchronen Versand
+
+		// E-Mail asynchron senden
 		if (!wp_next_scheduled('ltb_send_booking_request_email', array($reservation_id))) {
 			wp_schedule_single_event(time() + 1, 'ltb_send_booking_request_email', array($reservation_id));
 		}
-		
-		// Output-Buffer leeren (falls wir ihn gestartet haben)
-		if (!$buffer_started) {
-			ob_end_clean();
-		}
-		
+
 		return $reservation_id;
 	}
 
@@ -202,10 +203,10 @@ class LTB_Booking {
 	}
 
 	/**
-	 * Verfügbarkeit prüfen (NUR DAV-Kalender)
-	 * 
-	 * HINWEIS: Prüft nur ob der START-Slot frei ist.
-	 * Die vollständige Slot-Prüfung erfolgt beim Laden der Zeitslots im Frontend.
+	 * Verfügbarkeit prüfen (DB + DAV-Kalender)
+	 *
+	 * Prüft alle benötigten aufeinanderfolgenden Stunden sowohl in der Datenbank
+	 * als auch im DAV-Kalender.
 	 *
 	 * @param string $date Datum (Y-m-d)
 	 * @param string $start_time Startzeit (H:i:s)
@@ -213,38 +214,64 @@ class LTB_Booking {
 	 * @return bool Verfügbar
 	 */
 	public static function check_availability($date, $start_time, $duration) {
-		error_log('LTB check_availability: Prüfe Verfügbarkeit für ' . $date . ' ' . $start_time . ' (' . $duration . ' Stunden)');
-		
-		// NUR DAV-Kalender prüfen (Datenbank wird ignoriert)
+		// Zuerst DB-Prüfung (schnell, kein HTTP-Request)
+		if (!self::check_availability_db_only($date, $start_time, $duration)) {
+			return false;
+		}
+
+		// DAV-Kalender prüfen
 		$dav_client = new LTB_DAV_Client();
 		$available_slots = $dav_client->get_available_slots($date, $date);
-		
-		error_log('LTB check_availability: Gefundene Slots: ' . count($available_slots));
-		
-		// Nur den START-Slot prüfen (nicht alle Folge-Slots)
-		// Das Frontend zeigt bereits nur Slots an, wenn genug Folge-Stunden verfügbar sind
+
+		// Falls DAV keine Slots liefert (Verbindungsproblem): DB-Prüfung reicht
+		if (empty($available_slots)) {
+			error_log('LTB check_availability: DAV liefert keine Slots, verwende nur DB-Prüfung');
+			return true;
+		}
+
 		$start_hour = (int) date('G', strtotime($start_time));
-		
-		error_log('LTB check_availability: Prüfe nur Start-Stunde = ' . $start_hour);
-		
-		$found = false;
-		foreach ($available_slots as $slot) {
-			if ($slot['date'] === $date && $slot['hour'] === $start_hour) {
-				$found = true;
-				error_log('LTB check_availability: Start-Slot gefunden für Stunde ' . $start_hour);
-				break;
+
+		// Alle benötigten aufeinanderfolgenden Stunden prüfen
+		for ($i = 0; $i < $duration; $i++) {
+			$check_hour = $start_hour + $i;
+			$found = false;
+			foreach ($available_slots as $slot) {
+				if ($slot['date'] === $date && $slot['hour'] === $check_hour) {
+					$found = true;
+					break;
+				}
+			}
+			if (!$found) {
+				return false;
 			}
 		}
-		
-		// Wenn kein FREI-Slot gefunden wurde, trotzdem erlauben
-		// (Der DAV-Client löscht die FREI-Slots und erstellt BELEGT-Slots)
-		if (!$found) {
-			error_log('LTB check_availability: Kein FREI-Slot gefunden, aber Buchung wird trotzdem erlaubt');
-		}
-		
-		// Immer true zurückgeben - die eigentliche Verfügbarkeitsprüfung
-		// erfolgt im Frontend beim Laden der Zeitslots
+
 		return true;
+	}
+
+	/**
+	 * Admin per E-Mail über fehlgeschlagene DAV-Synchronisation benachrichtigen
+	 *
+	 * @param int $reservation_id Reservierungs-ID
+	 * @param string $error_message Fehlermeldung
+	 */
+	private static function notify_admin_dav_sync_failed($reservation_id, $error_message) {
+		$admin_email = get_option('admin_email');
+		$from_email  = get_option('ltb_email_from', $admin_email);
+		$from_name   = get_option('ltb_email_from_name', get_bloginfo('name'));
+
+		$subject = sprintf('[LaserTagPro] DAV-Sync fehlgeschlagen – Reservierung #%d', $reservation_id);
+		$body = sprintf(
+			"Achtung: Der Kalender-Eintrag für Reservierung #%d konnte nicht im DAV-Kalender erstellt werden.\n\n" .
+			"Fehlermeldung: %s\n\n" .
+			"Die Reservierung wurde in der Datenbank gespeichert, ist aber möglicherweise nicht im Kalender eingetragen.\n" .
+			"Bitte prüfen Sie die DAV-Konfiguration und legen Sie den Eintrag ggf. manuell an.",
+			$reservation_id,
+			$error_message
+		);
+
+		$headers = array('From: ' . $from_name . ' <' . $from_email . '>');
+		wp_mail($admin_email, $subject, $body, $headers);
 	}
 
 	/**
@@ -255,18 +282,38 @@ class LTB_Booking {
 	 */
 	public static function cancel_reservation($token) {
 		global $wpdb;
-		
+
+		// Rate Limiting: max. 10 Versuche pro IP in 15 Minuten
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : 'unknown';
+		$rate_key = 'ltb_cancel_attempts_' . md5($ip);
+		$attempts = (int) get_transient($rate_key);
+
+		if ($attempts >= 10) {
+			return new WP_Error('rate_limit', __('Zu viele Stornierungsversuche. Bitte versuchen Sie es in 15 Minuten erneut.', 'lasertagpro-buchung'));
+		}
+
+		set_transient($rate_key, $attempts + 1, 15 * MINUTE_IN_SECONDS);
+
 		$table = $wpdb->prefix . 'ltb_reservations';
-		
+
 		$reservation = $wpdb->get_row($wpdb->prepare(
 			"SELECT * FROM $table WHERE confirmation_token = %s AND status != 'cancelled'",
 			$token
 		));
-		
+
 		if (!$reservation) {
 			return new WP_Error('not_found', __('Reservierung nicht gefunden.', 'lasertagpro-buchung'));
 		}
-		
+
+		// Token-Ablauf prüfen: Stornierung nur innerhalb von 30 Tagen nach Buchungserstellung
+		$created_at = strtotime($reservation->created_at);
+		if ($created_at && (time() - $created_at) > (30 * DAY_IN_SECONDS)) {
+			return new WP_Error('token_expired', __('Der Stornierungslink ist abgelaufen. Bitte kontaktieren Sie uns direkt.', 'lasertagpro-buchung'));
+		}
+
+		// Erfolgreichen Versuch: Rate-Limit-Zähler zurücksetzen
+		delete_transient($rate_key);
+
 		return self::cancel_reservation_by_id($reservation->id);
 	}
 
@@ -323,6 +370,48 @@ class LTB_Booking {
 			"SELECT * FROM $table WHERE id = %d",
 			$id
 		));
+	}
+
+	/**
+	 * Anzahl der Reservierungen zählen (für Paginierung)
+	 *
+	 * @param array $args Filter-Argumente (status, date_from, date_to)
+	 * @return int Anzahl
+	 */
+	public static function count_reservations($args = array()) {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ltb_reservations';
+
+		$defaults = array(
+			'status'    => '',
+			'date_from' => '',
+			'date_to'   => '',
+		);
+		$args = wp_parse_args($args, $defaults);
+
+		$where        = array('1=1');
+		$where_values = array();
+
+		if (!empty($args['status'])) {
+			$where[]        = 'status = %s';
+			$where_values[] = $args['status'];
+		}
+		if (!empty($args['date_from'])) {
+			$where[]        = 'booking_date >= %s';
+			$where_values[] = $args['date_from'];
+		}
+		if (!empty($args['date_to'])) {
+			$where[]        = 'booking_date <= %s';
+			$where_values[] = $args['date_to'];
+		}
+
+		$where_clause = implode(' AND ', $where);
+		if (!empty($where_values)) {
+			$where_clause = $wpdb->prepare($where_clause, $where_values);
+		}
+
+		return (int) $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE $where_clause");
 	}
 
 	/**

@@ -10,13 +10,17 @@ if (!defined('ABSPATH')) {
 class LTB_Pricing {
 
 	/**
-	 * Staffelpreise pro Person (pauschal, nicht pro Stunde)
+	 * Paketpreise aus den WordPress-Optionen lesen
+	 *
+	 * @return array Preise pro Person nach Dauer
 	 */
-	private static $package_prices = array(
-		1 => 25.00,  // 60 Minuten: €25 pro Person
-		2 => 35.00,  // 120 Minuten: €35 pro Person
-		3 => 45.00,  // 180 Minuten: €45 pro Person
-	);
+	private static function get_package_prices() {
+		return array(
+			1 => (float) get_option('ltb_price_1h', 25.00),
+			2 => (float) get_option('ltb_price_2h', 35.00),
+			3 => (float) get_option('ltb_price_3h', 45.00),
+		);
+	}
 
 	/**
 	 * Preis für einen Slot berechnen
@@ -28,10 +32,12 @@ class LTB_Pricing {
 	 * @return array Preisinformationen
 	 */
 	public static function calculate_slot_price($date, $game_mode, $person_count, $duration = 1) {
+		$package_prices = self::get_package_prices();
+
 		// Staffelpreis pro Person basierend auf Dauer
-		$price_per_person = isset(self::$package_prices[$duration]) 
-			? self::$package_prices[$duration] 
-			: self::$package_prices[1];
+		$price_per_person = isset($package_prices[$duration])
+			? $package_prices[$duration]
+			: $package_prices[1];
 		
 		// Gesamtpreis = Preis pro Person × Anzahl Personen
 		$total_price = $price_per_person * $person_count;

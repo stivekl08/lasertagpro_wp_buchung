@@ -4,13 +4,18 @@ if (!defined('ABSPATH')) {
 }
 
 $current_month = !empty($atts['month']) ? absint($atts['month']) : date('n');
-$current_year = !empty($atts['year']) ? absint($atts['year']) : date('Y');
+$current_year  = !empty($atts['year'])  ? absint($atts['year'])  : date('Y');
 
 // Mindestanzahl Spieler aus Einstellungen
 $min_players = absint(get_option('ltb_min_players', 1));
 
+// Paketpreise aus den Einstellungen (damit Admin-Änderungen direkt wirken)
+$price_1h = number_format((float) get_option('ltb_price_1h', 25.00), 0, ',', '.');
+$price_2h = number_format((float) get_option('ltb_price_2h', 35.00), 0, ',', '.');
+$price_3h = number_format((float) get_option('ltb_price_3h', 45.00), 0, ',', '.');
+
 global $wpdb;
-$table = $wpdb->prefix . 'ltb_game_modes';
+$table      = $wpdb->prefix . 'ltb_game_modes';
 $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY sort_order ASC, name ASC");
 ?>
 <div class="ltb-booking-container">
@@ -33,20 +38,20 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 				<div class="ltb-package-card" data-duration="1">
 					<span class="ltb-package-label"><?php echo esc_html__('ACTION STARTER', 'lasertagpro-buchung'); ?></span>
 					<span class="ltb-package-duration">60 <?php echo esc_html__('Minuten', 'lasertagpro-buchung'); ?></span>
-					<span class="ltb-package-price">€25,-</span>
+					<span class="ltb-package-price">€<?php echo esc_html($price_1h); ?>,-</span>
 					<span class="ltb-package-per-person"><?php echo esc_html__('pro Person', 'lasertagpro-buchung'); ?></span>
 				</div>
 				<div class="ltb-package-card ltb-bestseller" data-duration="2">
 					<span class="ltb-package-badge"><?php echo esc_html__('Best Seller', 'lasertagpro-buchung'); ?></span>
 					<span class="ltb-package-label"><?php echo esc_html__('PREMIUM MISSION', 'lasertagpro-buchung'); ?></span>
 					<span class="ltb-package-duration">120 <?php echo esc_html__('Minuten', 'lasertagpro-buchung'); ?></span>
-					<span class="ltb-package-price">€35,-</span>
+					<span class="ltb-package-price">€<?php echo esc_html($price_2h); ?>,-</span>
 					<span class="ltb-package-per-person"><?php echo esc_html__('pro Person', 'lasertagpro-buchung'); ?></span>
 				</div>
 				<div class="ltb-package-card" data-duration="3">
 					<span class="ltb-package-label"><?php echo esc_html__('ELITE OPERATION', 'lasertagpro-buchung'); ?></span>
 					<span class="ltb-package-duration">180 <?php echo esc_html__('Minuten', 'lasertagpro-buchung'); ?></span>
-					<span class="ltb-package-price">€45,-</span>
+					<span class="ltb-package-price">€<?php echo esc_html($price_3h); ?>,-</span>
 					<span class="ltb-package-per-person"><?php echo esc_html__('pro Person', 'lasertagpro-buchung'); ?></span>
 				</div>
 			</div>
