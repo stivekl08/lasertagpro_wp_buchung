@@ -104,9 +104,15 @@ class LTB_Public {
 			
 			$dav_client = new LTB_DAV_Client();
 			$slots = $dav_client->get_available_slots($start_date, $end_date);
-			
-			// NUR DAV-Kalender verwenden, keine Datenbank-Filterung
-			// Die Datenbank wird nur für die Speicherung verwendet
+
+			// Gesperrte Tage herausfiltern
+			$blocked_dates = get_option('ltb_blocked_dates', array());
+			if (!empty($blocked_dates)) {
+				$slots = array_values(array_filter($slots, function($slot) use ($blocked_dates) {
+					return !in_array($slot['date'], $blocked_dates);
+				}));
+			}
+
 			wp_send_json_success($slots);
 		} catch (Exception $e) {
 			error_log('LTB AJAX Error: ' . $e->getMessage());

@@ -23,6 +23,9 @@ class LTB_Admin {
 		add_action('admin_post_ltb_export_reservations', array($this, 'export_reservations'));
 		add_action('admin_post_ltb_import_reservations', array($this, 'import_reservations'));
 		add_action('admin_post_ltb_sync_reservations', array($this, 'sync_reservations'));
+		add_action('admin_post_ltb_block_date', array($this, 'block_date'));
+		add_action('admin_post_ltb_unblock_date', array($this, 'unblock_date'));
+		add_action('admin_post_ltb_reserve_full_day', array($this, 'reserve_full_day'));
 	}
 
 	/**
@@ -261,12 +264,40 @@ class LTB_Admin {
 		check_admin_referer('ltb_delete_reservation');
 		
 		$id = absint($_GET['id']);
-		
+
 		global $wpdb;
 		$table = $wpdb->prefix . 'ltb_reservations';
-		
+
+		// Reservierung vor dem Löschen abrufen (für Kalender-Cleanup)
+		$reservation = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
+
 		$wpdb->delete($table, array('id' => $id), array('%d'));
-		
+
+		// DAV-Kalender bereinigen: BELEGT-Event löschen + FREI-Slots wiederherstellen
+		// (nur wenn Reservierung nicht bereits storniert war – stornieren hat das schon erledigt)
+		if ($reservation && $reservation->status !== 'cancelled') {
+			$dav_client = new LTB_DAV_Client();
+			$dav_client->cancel_reservation_in_calendar(
+				$reservation->booking_date,
+				$reservation->start_time,
+				$reservation->booking_duration
+			);
+
+			// ltb_blocked_dates bereinigen wenn nötig
+			$date = substr($reservation->booking_date, 0, 10);
+			$remaining = $wpdb->get_var($wpdb->prepare(
+				"SELECT COUNT(*) FROM $table WHERE booking_date LIKE %s AND status != 'cancelled'",
+				$date . '%'
+			));
+			if ($remaining == 0) {
+				$blocked = get_option('ltb_blocked_dates', array());
+				$new = array_values(array_diff($blocked, array($date)));
+				if (count($new) !== count($blocked)) {
+					update_option('ltb_blocked_dates', $new);
+				}
+			}
+		}
+
 		wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'deleted' => '1'), admin_url('admin.php')));
 		exit;
 	}
@@ -293,7 +324,7 @@ class LTB_Admin {
 			'game_mode' => sanitize_text_field($_POST['game_mode']),
 		);
 		
-		$result = LTB_Booking::create_reservation($data);
+		$result = LTB_Booking::create_reservation($data, false);
 		
 		if (is_wp_error($result)) {
 			wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'error' => urlencode($result->get_error_message())), admin_url('admin.php')));
@@ -407,6 +438,120 @@ class LTB_Admin {
 		}
 		
 		wp_redirect(add_query_arg($query_args, admin_url('admin.php')));
+		exit;
+	}
+
+	/**
+	 * Ganztägige Reservierung erstellen
+	 */
+	public function reserve_full_day() {
+		if (!current_user_can('manage_options')) {
+			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
+		}
+
+		check_admin_referer('ltb_reserve_full_day');
+
+		$date = sanitize_text_field($_POST['reserve_date']);
+		$name = sanitize_text_field($_POST['reserve_name']);
+
+		if (empty($date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+			wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'error' => urlencode(__('Ungültiges Datum.', 'lasertagpro-buchung'))), admin_url('admin.php')));
+			exit;
+		}
+
+		if (empty($name)) {
+			$name = __('Ganztägige Reservierung', 'lasertagpro-buchung');
+		}
+
+		$start_hour = absint(get_option('ltb_start_hour', 9));
+		$end_hour   = absint(get_option('ltb_end_hour', 21));
+		$duration   = max(1, $end_hour - $start_hour);
+
+		$start_time = sprintf('%02d:00:00', $start_hour);
+		$end_time   = sprintf('%02d:00:00', $end_hour);
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'ltb_reservations';
+		$token = bin2hex(random_bytes(32));
+
+		$result = $wpdb->insert($table, array(
+			'booking_date'     => $date,
+			'booking_duration' => $duration,
+			'start_time'       => $start_time,
+			'end_time'         => $end_time,
+			'name'             => $name,
+			'email'            => '',
+			'phone'            => '',
+			'message'          => '',
+			'person_count'     => 1,
+			'game_mode'        => __('Ganztägig', 'lasertagpro-buchung'),
+			'status'           => 'confirmed',
+			'confirmation_token' => $token,
+		));
+
+		if ($result === false) {
+			wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'error' => urlencode(__('Fehler beim Speichern der Reservierung.', 'lasertagpro-buchung'))), admin_url('admin.php')));
+			exit;
+		}
+
+		// DAV-Event für den ganzen Tag erstellen
+		$dav_client = new LTB_DAV_Client();
+		$summary = 'BELEGT - ' . $name . ' (ganztägig)';
+		$dav_client->create_event($date, $start_time, $duration, $summary);
+
+		// Tag auch in blocked_dates eintragen, damit Frontend keine Slots zeigt
+		$blocked_dates = get_option('ltb_blocked_dates', array());
+		if (!in_array($date, $blocked_dates)) {
+			$blocked_dates[] = $date;
+			sort($blocked_dates);
+			update_option('ltb_blocked_dates', $blocked_dates);
+		}
+
+		wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'reserved_day' => '1'), admin_url('admin.php')));
+		exit;
+	}
+
+	/**
+	 * Tag sperren
+	 */
+	public function block_date() {
+		if (!current_user_can('manage_options')) {
+			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
+		}
+
+		check_admin_referer('ltb_block_date');
+
+		$date = sanitize_text_field($_POST['block_date']);
+
+		if (!empty($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+			$blocked_dates = get_option('ltb_blocked_dates', array());
+			if (!in_array($date, $blocked_dates)) {
+				$blocked_dates[] = $date;
+				sort($blocked_dates);
+				update_option('ltb_blocked_dates', $blocked_dates);
+			}
+		}
+
+		wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'blocked_date' => '1'), admin_url('admin.php')));
+		exit;
+	}
+
+	/**
+	 * Tag entsperren
+	 */
+	public function unblock_date() {
+		if (!current_user_can('manage_options')) {
+			wp_die(__('Sie haben keine Berechtigung für diese Aktion.', 'lasertagpro-buchung'));
+		}
+
+		check_admin_referer('ltb_unblock_date');
+
+		$date = sanitize_text_field($_GET['date']);
+		$blocked_dates = get_option('ltb_blocked_dates', array());
+		$blocked_dates = array_values(array_diff($blocked_dates, array($date)));
+		update_option('ltb_blocked_dates', $blocked_dates);
+
+		wp_redirect(add_query_arg(array('page' => 'ltb-reservations', 'unblocked_date' => '1'), admin_url('admin.php')));
 		exit;
 	}
 

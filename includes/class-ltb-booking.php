@@ -15,7 +15,7 @@ class LTB_Booking {
 	 * @param array $data Buchungsdaten
 	 * @return int|WP_Error Reservierungs-ID oder Fehler
 	 */
-	public static function create_reservation($data) {
+	public static function create_reservation($data, $require_email = true) {
 		// Output-Buffer sicherstellen (falls nicht bereits aktiv)
 		$buffer_started = ob_get_level() > 0;
 		if (!$buffer_started) {
@@ -27,7 +27,7 @@ class LTB_Booking {
 		$table = $wpdb->prefix . 'ltb_reservations';
 		
 		// Validierung
-		$errors = self::validate_booking_data($data);
+		$errors = self::validate_booking_data($data, $require_email);
 		if (!empty($errors)) {
 			return new WP_Error('validation_error', implode(', ', $errors));
 		}
@@ -123,37 +123,45 @@ class LTB_Booking {
 	 * @param array $data Buchungsdaten
 	 * @return array Array von Fehlermeldungen
 	 */
-	private static function validate_booking_data($data) {
+	private static function validate_booking_data($data, $require_email = true) {
 		$errors = array();
-		
+
 		if (empty($data['booking_date'])) {
 			$errors[] = __('Bitte wählen Sie ein Datum.', 'lasertagpro-buchung');
+		} else {
+			// Gesperrte Tage prüfen
+			$blocked_dates = get_option('ltb_blocked_dates', array());
+			if (in_array($data['booking_date'], $blocked_dates)) {
+				$errors[] = __('Dieser Tag ist gesperrt und kann nicht gebucht werden.', 'lasertagpro-buchung');
+			}
 		}
-		
+
 		if (empty($data['start_time'])) {
 			$errors[] = __('Bitte wählen Sie eine Uhrzeit.', 'lasertagpro-buchung');
 		}
-		
+
 		if (empty($data['booking_duration']) || $data['booking_duration'] < 1 || $data['booking_duration'] > 3) {
 			$errors[] = __('Die Dauer muss zwischen 1 und 3 Stunden liegen.', 'lasertagpro-buchung');
 		}
-		
+
 		if (empty($data['name'])) {
 			$errors[] = __('Bitte geben Sie Ihren Namen ein.', 'lasertagpro-buchung');
 		}
-		
-		if (empty($data['email']) || !is_email($data['email'])) {
+
+		if ($require_email && (empty($data['email']) || !is_email($data['email']))) {
+			$errors[] = __('Bitte geben Sie eine gültige E-Mail-Adresse ein.', 'lasertagpro-buchung');
+		} elseif (!empty($data['email']) && !is_email($data['email'])) {
 			$errors[] = __('Bitte geben Sie eine gültige E-Mail-Adresse ein.', 'lasertagpro-buchung');
 		}
-		
+
 		if (empty($data['person_count']) || $data['person_count'] < 1) {
 			$errors[] = __('Bitte geben Sie die Anzahl der Personen an.', 'lasertagpro-buchung');
 		}
-		
+
 		if (empty($data['game_mode'])) {
 			$errors[] = __('Bitte wählen Sie einen Spielmodus.', 'lasertagpro-buchung');
 		}
-		
+
 		return $errors;
 	}
 
@@ -301,11 +309,48 @@ class LTB_Booking {
 		if ($result === false) {
 			return new WP_Error('db_error', __('Fehler beim Stornieren.', 'lasertagpro-buchung'));
 		}
-		
+
+		// DAV-Kalender bereinigen: BELEGT-Event löschen + FREI-Slots wiederherstellen
+		$dav_client = new LTB_DAV_Client();
+		$dav_client->cancel_reservation_in_calendar(
+			$reservation->booking_date,
+			$reservation->start_time,
+			$reservation->booking_duration
+		);
+
+		// ltb_blocked_dates bereinigen: falls für diesen Tag keine aktiven Reservierungen mehr existieren
+		self::maybe_unblock_date($reservation->booking_date);
+
 		// E-Mail senden
 		LTB_Email::send_cancellation_confirmation($id);
-		
+
 		return true;
+	}
+
+	/**
+	 * Datum aus blocked_dates entfernen, falls keine aktiven Reservierungen mehr
+	 *
+	 * @param string $booking_date Datum (Y-m-d oder Y-m-d H:i:s)
+	 */
+	private static function maybe_unblock_date($booking_date) {
+		global $wpdb;
+
+		$date = substr($booking_date, 0, 10);
+		$table = $wpdb->prefix . 'ltb_reservations';
+
+		$active = $wpdb->get_var($wpdb->prepare(
+			"SELECT COUNT(*) FROM $table WHERE booking_date LIKE %s AND status != 'cancelled'",
+			$date . '%'
+		));
+
+		if ($active == 0) {
+			$blocked_dates = get_option('ltb_blocked_dates', array());
+			$new = array_values(array_diff($blocked_dates, array($date)));
+			if (count($new) !== count($blocked_dates)) {
+				update_option('ltb_blocked_dates', $new);
+				error_log('LTB: Datum ' . $date . ' aus blocked_dates entfernt (keine aktiven Reservierungen mehr)');
+			}
+		}
 	}
 
 	/**

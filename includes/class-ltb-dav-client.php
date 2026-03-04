@@ -1152,6 +1152,96 @@ class LTB_DAV_Client {
 	}
 
 	/**
+	 * Reservierung im Kalender stornieren: BELEGT-Event löschen + FREI-Slots wiederherstellen
+	 *
+	 * @param string $date Datum (Y-m-d oder Y-m-d H:i:s)
+	 * @param string $start_time Startzeit (H:i:s)
+	 * @param int $duration Dauer in Stunden
+	 */
+	public function cancel_reservation_in_calendar($date, $start_time, $duration) {
+		if (empty($this->dav_url) || empty($this->username) || empty($this->password)) {
+			return;
+		}
+
+		// Nur das Datum extrahieren (falls datetime)
+		$date = substr($date, 0, 10);
+		$start_hour = (int) date('G', strtotime($date . ' ' . $start_time));
+
+		// SCHRITT 1: BELEGT-Event anhand des bekannten Dateinamens löschen
+		$time_for_filename = str_replace(':', '', substr($start_time, 0, 5)); // HHMM
+		$event_filename = 'ltb-' . $date . '-' . $time_for_filename . '.ics';
+		$event_url = rtrim($this->dav_url, '/') . '/' . $event_filename;
+
+		error_log('LTB DAV cancel: Lösche BELEGT-Event: ' . $event_url);
+		$this->delete_event_by_url($event_url);
+
+		// SCHRITT 2: FREI-Slots für jede gebuchte Stunde wiederherstellen
+		for ($i = 0; $i < $duration; $i++) {
+			$hour = $start_hour + $i;
+			error_log('LTB DAV cancel: Stelle FREI-Slot wieder her für Stunde ' . $hour);
+			$this->create_free_slot($date, $hour);
+		}
+	}
+
+	/**
+	 * FREI-Slot für eine Stunde erstellen
+	 *
+	 * @param string $date Datum (Y-m-d)
+	 * @param int $hour Stunde (0-23)
+	 * @return bool Erfolg
+	 */
+	private function create_free_slot($date, $hour) {
+		$hour_str      = str_pad($hour, 2, '0', STR_PAD_LEFT);
+		$next_hour_str = str_pad($hour + 1, 2, '0', STR_PAD_LEFT);
+
+		$start_obj = new DateTime($date . ' ' . $hour_str . ':00:00');
+		$end_obj   = new DateTime($date . ' ' . $next_hour_str . ':00:00');
+
+		$uid      = 'ltb-frei-' . $date . '-' . $hour_str . '00@lasertagpro.at';
+		$dtstart  = $start_obj->format('Ymd\THis');
+		$dtend    = $end_obj->format('Ymd\THis');
+		$dtstamp  = date('Ymd\THis\Z');
+
+		$ical  = "BEGIN:VCALENDAR\r\n";
+		$ical .= "VERSION:2.0\r\n";
+		$ical .= "PRODID:-//LaserTagPro//Booking System//EN\r\n";
+		$ical .= "BEGIN:VEVENT\r\n";
+		$ical .= "UID:" . $uid . "\r\n";
+		$ical .= "DTSTAMP:" . $dtstamp . "\r\n";
+		$ical .= "DTSTART:" . $dtstart . "\r\n";
+		$ical .= "DTEND:" . $dtend . "\r\n";
+		$ical .= "SUMMARY:FREI\r\n";
+		$ical .= "END:VEVENT\r\n";
+		$ical .= "END:VCALENDAR\r\n";
+
+		$event_filename = 'ltb-frei-' . $date . '-' . $hour_str . '00.ics';
+		$event_url = rtrim($this->dav_url, '/') . '/' . $event_filename;
+
+		$args = array(
+			'method'  => 'PUT',
+			'headers' => array('Content-Type' => 'text/calendar; charset=utf-8'),
+			'body'    => $ical,
+			'timeout' => 30,
+		);
+
+		$response = wp_remote_request($event_url, $this->add_auth($args));
+
+		if (is_wp_error($response)) {
+			error_log('LTB DAV create_free_slot Error: ' . $response->get_error_message());
+			return false;
+		}
+
+		$code = wp_remote_retrieve_response_code($response);
+		if ($code >= 200 && $code < 300) {
+			error_log('LTB DAV: FREI-Slot erstellt: ' . $event_url);
+			return true;
+		}
+
+		error_log('LTB DAV create_free_slot Error: HTTP ' . $code . ' für ' . $event_url);
+		return false;
+	}
+
+	/**
 	 * Authentifizierung zu Request-Args hinzufügen
 	 *
 	 * @param array $args Request-Args

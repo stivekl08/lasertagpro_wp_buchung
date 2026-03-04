@@ -75,6 +75,24 @@ if (!defined('ABSPATH')) {
 		</div>
 	<?php endif; ?>
 	
+	<?php if (isset($_GET['reserved_day'])): ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php echo esc_html__('Tag wurde ganztägig reserviert.', 'lasertagpro-buchung'); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<?php if (isset($_GET['blocked_date'])): ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php echo esc_html__('Tag wurde gesperrt.', 'lasertagpro-buchung'); ?></p>
+		</div>
+	<?php endif; ?>
+
+	<?php if (isset($_GET['unblocked_date'])): ?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php echo esc_html__('Tag wurde entsperrt.', 'lasertagpro-buchung'); ?></p>
+		</div>
+	<?php endif; ?>
+
 	<?php if (isset($_GET['error'])): ?>
 		<div class="notice notice-error is-dismissible">
 			<p><?php echo esc_html(urldecode($_GET['error'])); ?></p>
@@ -106,8 +124,8 @@ if (!defined('ABSPATH')) {
 						<td><input type="text" id="name" name="name" required></td>
 					</tr>
 					<tr>
-						<th><label for="email"><?php echo esc_html__('E-Mail', 'lasertagpro-buchung'); ?> <span class="required">*</span></label></th>
-						<td><input type="email" id="email" name="email" required></td>
+						<th><label for="email"><?php echo esc_html__('E-Mail', 'lasertagpro-buchung'); ?></label></th>
+						<td><input type="email" id="email" name="email"></td>
 					</tr>
 					<tr>
 						<th><label for="phone"><?php echo esc_html__('Telefon', 'lasertagpro-buchung'); ?></label></th>
@@ -145,7 +163,58 @@ if (!defined('ABSPATH')) {
 			</form>
 		</div>
 	<?php else: ?>
-	
+
+	<!-- Ganztägige Reservierung -->
+	<div class="ltb-blocked-dates-box" style="background:#fff;border:1px solid #c3c4c7;padding:15px 20px;margin-bottom:20px;">
+		<h3 style="margin-top:0;"><?php echo esc_html__('Ganztägig reservieren / Tag sperren', 'lasertagpro-buchung'); ?></h3>
+		<div style="display:flex;gap:20px;flex-wrap:wrap;">
+			<!-- Ganztägig reservieren -->
+			<div style="flex:1;min-width:280px;">
+				<strong><?php echo esc_html__('Ganztägige Reservierung', 'lasertagpro-buchung'); ?></strong>
+				<p class="description" style="margin-bottom:8px;"><?php echo esc_html__('Erstellt einen Reservierungseintrag für den gesamten Tag (erscheint in der Liste).', 'lasertagpro-buchung'); ?></p>
+				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:flex;flex-direction:column;gap:6px;">
+					<?php wp_nonce_field('ltb_reserve_full_day'); ?>
+					<input type="hidden" name="action" value="ltb_reserve_full_day">
+					<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+						<input type="date" name="reserve_date" required style="padding:4px 8px;">
+						<input type="text" name="reserve_name" placeholder="<?php echo esc_attr__('Name / Bezeichnung', 'lasertagpro-buchung'); ?>" style="padding:4px 8px;flex:1;min-width:150px;">
+						<input type="submit" class="button button-primary" value="<?php echo esc_attr__('Ganztägig reservieren', 'lasertagpro-buchung'); ?>">
+					</div>
+				</form>
+			</div>
+			<!-- Trennlinie -->
+			<div style="border-left:1px solid #ddd;margin:0 5px;"></div>
+			<!-- Tag sperren -->
+			<div style="flex:1;min-width:280px;">
+				<strong><?php echo esc_html__('Tag sperren (kein Eintrag)', 'lasertagpro-buchung'); ?></strong>
+				<p class="description" style="margin-bottom:8px;"><?php echo esc_html__('Blockiert den Tag im Frontend ohne Reservierungseintrag.', 'lasertagpro-buchung'); ?></p>
+				<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+					<?php wp_nonce_field('ltb_block_date'); ?>
+					<input type="hidden" name="action" value="ltb_block_date">
+					<input type="date" name="block_date" required style="padding:4px 8px;">
+					<input type="submit" class="button button-secondary" value="<?php echo esc_attr__('Tag sperren', 'lasertagpro-buchung'); ?>">
+				</form>
+			</div>
+		</div>
+
+		<?php
+		$blocked_dates = get_option('ltb_blocked_dates', array());
+		if (!empty($blocked_dates)):
+		?>
+		<div style="margin-top:12px;border-top:1px solid #f0f0f1;padding-top:12px;">
+			<strong><?php echo esc_html__('Gesperrte Tage:', 'lasertagpro-buchung'); ?></strong>
+			<ul style="margin:6px 0 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px;">
+				<?php foreach ($blocked_dates as $blocked_date): ?>
+				<li style="background:#f0f0f1;padding:4px 10px;border-radius:3px;display:flex;align-items:center;gap:8px;">
+					<span><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($blocked_date))); ?></span>
+					<a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=ltb_unblock_date&date=' . urlencode($blocked_date)), 'ltb_unblock_date')); ?>" title="<?php echo esc_attr__('Entsperren', 'lasertagpro-buchung'); ?>" style="color:#b32d2e;text-decoration:none;font-weight:bold;" onclick="return confirm('<?php echo esc_js(__('Tag wirklich entsperren?', 'lasertagpro-buchung')); ?>');">×</a>
+				</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+		<?php endif; ?>
+	</div>
+
 	<form method="get" action="">
 		<input type="hidden" name="page" value="ltb-reservations">
 		
