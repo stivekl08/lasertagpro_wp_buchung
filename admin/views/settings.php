@@ -179,6 +179,32 @@ if (isset($_GET['settings-updated'])) {
 			</tr>
 		</table>
 		
+		<h2><?php echo esc_html__('Paketpreise', 'lasertagpro-buchung'); ?></h2>
+		<p class="description"><?php echo esc_html__('Preise pro Person nach Buchungsdauer. Änderungen gelten sofort für neue Buchungen.', 'lasertagpro-buchung'); ?></p>
+		<table class="form-table">
+			<tr>
+				<th><label for="ltb_price_1h"><?php echo esc_html__('60 Minuten (€ pro Person)', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="number" id="ltb_price_1h" name="ltb_price_1h" value="<?php echo esc_attr(get_option('ltb_price_1h', '25.00')); ?>" min="0" step="0.01" class="small-text" required>
+					<p class="description"><?php echo esc_html__('Standardwert: €25,00', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_price_2h"><?php echo esc_html__('120 Minuten (€ pro Person)', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="number" id="ltb_price_2h" name="ltb_price_2h" value="<?php echo esc_attr(get_option('ltb_price_2h', '35.00')); ?>" min="0" step="0.01" class="small-text" required>
+					<p class="description"><?php echo esc_html__('Standardwert: €35,00', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_price_3h"><?php echo esc_html__('180 Minuten (€ pro Person)', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="number" id="ltb_price_3h" name="ltb_price_3h" value="<?php echo esc_attr(get_option('ltb_price_3h', '45.00')); ?>" min="0" step="0.01" class="small-text" required>
+					<p class="description"><?php echo esc_html__('Standardwert: €45,00', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+		</table>
+
 		<div class="notice notice-info">
 			<p>
 				<strong><?php echo esc_html__('Hinweis:', 'lasertagpro-buchung'); ?></strong>
@@ -188,7 +214,7 @@ if (isset($_GET['settings-updated'])) {
 				</a>
 			</p>
 		</div>
-		
+
 		<?php submit_button(); ?>
 	</form>
 </div>

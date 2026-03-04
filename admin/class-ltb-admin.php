@@ -93,6 +93,14 @@ class LTB_Admin {
 		register_setting('ltb_settings', 'ltb_telegram_enabled');
 		register_setting('ltb_settings', 'ltb_telegram_bot_token');
 		register_setting('ltb_settings', 'ltb_telegram_chat_id');
+
+		$price_sanitize = function($value) {
+			$value = floatval(str_replace(',', '.', $value));
+			return max(0, round($value, 2));
+		};
+		register_setting('ltb_settings', 'ltb_price_1h', array('sanitize_callback' => $price_sanitize));
+		register_setting('ltb_settings', 'ltb_price_2h', array('sanitize_callback' => $price_sanitize));
+		register_setting('ltb_settings', 'ltb_price_3h', array('sanitize_callback' => $price_sanitize));
 	}
 
 	/**
@@ -177,20 +185,29 @@ class LTB_Admin {
 	 * Reservierungen rendern
 	 */
 	public function render_reservations() {
-		$status = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
+		$status    = isset($_GET['status'])    ? sanitize_text_field($_GET['status'])    : '';
 		$date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : '';
-		$date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : '';
-		
-		$args = array(
-			'status' => $status,
+		$date_to   = isset($_GET['date_to'])   ? sanitize_text_field($_GET['date_to'])   : '';
+		$paged     = isset($_GET['paged'])     ? max(1, absint($_GET['paged']))           : 1;
+		$per_page  = 25;
+
+		$filter_args = array(
+			'status'    => $status,
 			'date_from' => $date_from,
-			'date_to' => $date_to,
-			'orderby' => 'booking_date',
-			'order' => 'ASC',
+			'date_to'   => $date_to,
 		);
-		
-		$reservations = LTB_Booking::get_reservations($args);
-		
+
+		$total_count = LTB_Booking::count_reservations($filter_args);
+		$total_pages = max(1, (int) ceil($total_count / $per_page));
+		$paged       = min($paged, $total_pages);
+
+		$reservations = LTB_Booking::get_reservations(array_merge($filter_args, array(
+			'orderby' => 'booking_date',
+			'order'   => 'ASC',
+			'limit'   => $per_page,
+			'offset'  => ($paged - 1) * $per_page,
+		)));
+
 		include LTB_PLUGIN_DIR . 'admin/views/reservations.php';
 	}
 

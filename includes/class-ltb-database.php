@@ -44,7 +44,8 @@ class LTB_Database {
 			PRIMARY KEY (id),
 			KEY booking_date (booking_date),
 			KEY status (status),
-			KEY email (email)
+			KEY email (email),
+			KEY confirmation_token (confirmation_token)
 		) $charset_collate;";
 		
 		// Tabelle für Spielmodi/Packages
