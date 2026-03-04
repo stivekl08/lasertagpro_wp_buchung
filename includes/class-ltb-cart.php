@@ -15,10 +15,6 @@ class LTB_Cart {
 	 * @return array Warenkorb-Inhalt
 	 */
 	public static function get_cart() {
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
 		return isset($_SESSION['ltb_cart']) ? $_SESSION['ltb_cart'] : array();
 	}
 
@@ -29,10 +25,6 @@ class LTB_Cart {
 	 * @return bool Erfolg
 	 */
 	public static function add_to_cart($item) {
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
 		if (!isset($_SESSION['ltb_cart'])) {
 			$_SESSION['ltb_cart'] = array();
 		}
@@ -72,10 +64,6 @@ class LTB_Cart {
 	 * @return bool Erfolg
 	 */
 	public static function remove_from_cart($item_id) {
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
 		if (isset($_SESSION['ltb_cart'][$item_id])) {
 			unset($_SESSION['ltb_cart'][$item_id]);
 			return true;
@@ -88,10 +76,6 @@ class LTB_Cart {
 	 * Warenkorb leeren
 	 */
 	public static function clear_cart() {
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-
 		unset($_SESSION['ltb_cart']);
 	}
 

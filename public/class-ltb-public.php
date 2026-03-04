@@ -144,12 +144,7 @@ class LTB_Public {
 	 */
 	public function ajax_add_to_cart() {
 		check_ajax_referer('ltb_nonce', 'nonce');
-		
-		// Session sicherstellen
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
+
 		$item = array(
 			'booking_date' => sanitize_text_field($_POST['booking_date']),
 			'start_time' => sanitize_text_field($_POST['start_time']),
@@ -182,12 +177,7 @@ class LTB_Public {
 	 */
 	public function ajax_remove_from_cart() {
 		check_ajax_referer('ltb_nonce', 'nonce');
-		
-		// Session sicherstellen
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
+
 		$item_id = sanitize_text_field($_POST['item_id']);
 		
 		$result = LTB_Cart::remove_from_cart($item_id);
@@ -214,12 +204,7 @@ class LTB_Public {
 	 */
 	public function ajax_get_cart() {
 		check_ajax_referer('ltb_nonce', 'nonce');
-		
-		// Session sicherstellen
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
+
 		$cart = LTB_Cart::get_cart();
 		$cart_total = LTB_Cart::calculate_total();
 		
@@ -240,12 +225,7 @@ class LTB_Public {
 		ob_start();
 		
 		check_ajax_referer('ltb_nonce', 'nonce');
-		
-		// Session sicherstellen
-		if (!session_id() && !headers_sent()) {
-			session_start();
-		}
-		
+
 		$cart = LTB_Cart::get_cart();
 		
 		if (empty($cart)) {

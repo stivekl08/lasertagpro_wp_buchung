@@ -95,8 +95,30 @@ class LaserTagPro_Buchung {
 	 * Session starten
 	 */
 	public function start_session() {
+		// Keine Session im Admin-Bereich (Warenkorb wird dort nicht benötigt)
+		// DOING_AJAX ausgenommen, da Warenkorbaktionen über AJAX laufen
+		if (is_admin() && !defined('DOING_AJAX')) {
+			return;
+		}
+
+		// REST_REQUEST wird erst nach dem init-Hook gesetzt,
+		// daher zusätzlich die URL direkt prüfen
+		if ((defined('REST_REQUEST') && REST_REQUEST) ||
+			(defined('DOING_CRON') && DOING_CRON) ||
+			(defined('XMLRPC_REQUEST') && XMLRPC_REQUEST)) {
+			return;
+		}
+
+		if (isset($_SERVER['REQUEST_URI'])) {
+			$rest_prefix = rest_get_url_prefix();
+			if (strpos($_SERVER['REQUEST_URI'], '/' . $rest_prefix . '/') !== false) {
+				return;
+			}
+		}
+
 		if (!session_id() && !headers_sent()) {
 			session_start();
+			register_shutdown_function('session_write_close');
 		}
 	}
 
