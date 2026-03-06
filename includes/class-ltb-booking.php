@@ -214,39 +214,10 @@ class LTB_Booking {
 	 * @return bool Verfügbar
 	 */
 	public static function check_availability($date, $start_time, $duration) {
-		// Zuerst DB-Prüfung (schnell, kein HTTP-Request)
-		if (!self::check_availability_db_only($date, $start_time, $duration)) {
-			return false;
-		}
-
-		// DAV-Kalender prüfen
-		$dav_client = new LTB_DAV_Client();
-		$available_slots = $dav_client->get_available_slots($date, $date);
-
-		// Falls DAV keine Slots liefert (Verbindungsproblem): DB-Prüfung reicht
-		if (empty($available_slots)) {
-			error_log('LTB check_availability: DAV liefert keine Slots, verwende nur DB-Prüfung');
-			return true;
-		}
-
-		$start_hour = (int) date('G', strtotime($start_time));
-
-		// Alle benötigten aufeinanderfolgenden Stunden prüfen
-		for ($i = 0; $i < $duration; $i++) {
-			$check_hour = $start_hour + $i;
-			$found = false;
-			foreach ($available_slots as $slot) {
-				if ($slot['date'] === $date && $slot['hour'] === $check_hour) {
-					$found = true;
-					break;
-				}
-			}
-			if (!$found) {
-				return false;
-			}
-		}
-
-		return true;
+		// DB ist die einzige zuverlässige Quelle für Doppelbuchungs-Prüfung.
+		// Die DAV-Verfügbarkeit wurde bereits beim Anzeigen der Slots geprüft;
+		// nach der Buchung wird ein BELEGT-Event in DAV erstellt.
+		return self::check_availability_db_only($date, $start_time, $duration);
 	}
 
 	/**
