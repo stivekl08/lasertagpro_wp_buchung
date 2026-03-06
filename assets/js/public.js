@@ -319,8 +319,8 @@
 
 				// Spezielle Aktionen pro Schritt
 				if (step === 2) {
-					// Spielmodus automatisch auf "LaserTag" setzen
-					this.selectedGameMode = 'LaserTag';
+					// Spielmodus automatisch auf ersten aktiven Modus aus DB setzen
+					this.selectedGameMode = ltbData.defaultGameMode || 'LaserTag';
 					console.log('Schritt 2 aktiv - Paket-Auswahl');
 				} else if (step === 3) {
 					this.updateDateDisplay();
@@ -347,8 +347,8 @@
 			card.classList.add('ltb-selected');
 			this.selectedDuration = parseInt(card.dataset.duration) || 1;
 			
-			// Spielmodus automatisch setzen
-			this.selectedGameMode = 'LaserTag';
+			// Spielmodus automatisch auf ersten aktiven Modus aus DB setzen
+			this.selectedGameMode = ltbData.defaultGameMode || 'LaserTag';
 			
 			console.log('Ausgewähltes Paket - Dauer:', this.selectedDuration);
 			
@@ -405,7 +405,7 @@
 				btn.classList.add('ltb-selected');
 			}
 
-			this.selectedGameMode = card.dataset.mode;
+			this.selectedGameMode = card.dataset.mode || ltbData.defaultGameMode || 'LaserTag';
 
 			// Weiter-Button anzeigen
 			const nextBtn = this.container.querySelector('.ltb-step-2 .ltb-next-step');
@@ -575,14 +575,10 @@
 			console.log('Slots gerendert und sortiert:', slotElements.length);
 		},
 		
-		// Preis pro Person basierend auf gewähltem Paket
+		// Preis pro Person basierend auf gewähltem Paket (aus Admin-Einstellungen via ltbData)
 		calculatePricePerPerson: function() {
-			switch (this.selectedDuration) {
-				case 1: return 25.00;  // 60 Min
-				case 2: return 35.00;  // 120 Min
-				case 3: return 45.00;  // 180 Min
-				default: return 25.00;
-			}
+			const prices = (ltbData && ltbData.prices) ? ltbData.prices : { 1: 25, 2: 35, 3: 45 };
+			return parseFloat(prices[this.selectedDuration] || prices[1] || 25);
 		},
 
 		fetchSlotPricing: function(slot) {
@@ -639,6 +635,9 @@
 			const slotEl = document.createElement('div');
 			slotEl.className = 'ltb-time-slot';
 			slotEl.dataset.slot = JSON.stringify(slot);
+			// Tastatur-Navigation und Screenreader-Unterstützung
+			slotEl.setAttribute('role', 'button');
+			slotEl.setAttribute('tabindex', '0');
 
 			// Startzeit
 			const startTimeStr = slot.start.split(' ')[1].substring(0, 5);
@@ -676,11 +675,24 @@
 				<div class="ltb-slot-availability">0/24 ${ltbData.strings.players || 'Spieler'}</div>
 			`;
 
+			// Lesbarkeit für Screenreader
+			slotEl.setAttribute('aria-label',
+				`Zeitslot ${timeDisplay}, ${durationText}, €${priceNum.toFixed(2)} pro Person – auswählen`
+			);
+
 			slotEl.addEventListener('click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
 				console.log('Slot geklickt, aktueller Schritt:', this.currentStep);
 				this.selectTimeSlot(slot, pricing);
+			});
+
+			// Tastatur-Aktivierung (Enter / Leertaste)
+			slotEl.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					this.selectTimeSlot(slot, pricing);
+				}
 			});
 
 			return slotEl;
@@ -952,7 +964,23 @@
 			const modal = this.container.querySelector('.ltb-checkout-modal');
 			console.log('Modal gefunden:', modal);
 			if (modal) {
+				// Trigger-Button merken VOR focus(), damit document.activeElement noch stimmt
+				this._checkoutTrigger = document.activeElement;
+
+				// Eventuelle vorherige Fehlermeldung im Modal löschen
+				const msgEl = modal.querySelector('.ltb-modal-message');
+				if (msgEl) {
+					msgEl.style.display = 'none';
+					msgEl.textContent = '';
+				}
+
 				modal.style.display = 'flex';
+
+				// Focus auf erstes Texteingabefeld setzen (nicht auf den Close-Button)
+				const firstField = modal.querySelector('input[type="text"], input[type="email"], input[type="tel"], textarea');
+				if (firstField) {
+					firstField.focus();
+				}
 				console.log('Modal angezeigt');
 			} else {
 				console.error('Modal NICHT gefunden!');
@@ -967,6 +995,10 @@
 				const form = modal.querySelector('#ltb-checkout-form');
 				if (form) {
 					form.reset();
+				}
+				// Focus zurück auf den Checkout-Button
+				if (this._checkoutTrigger && this._checkoutTrigger.focus) {
+					this._checkoutTrigger.focus();
 				}
 			}
 		},
@@ -989,13 +1021,13 @@
 			const inquiryThreshold = parseInt(ltbData.inquiryThreshold) || 0; // 0 = keine Anfrage-Pflicht
 			
 			if (!name || !email) {
-				this.showMessage('error', 'Bitte füllen Sie alle Pflichtfelder aus.');
+				this.showModalMessage('error', 'Bitte füllen Sie alle Pflichtfelder aus.');
 				return;
 			}
-			
+
 			// Prüfen, ob Nachricht bei Anfrage-Schwelle erforderlich ist
 			if (inquiryThreshold > 0 && this.playerCount >= inquiryThreshold && !message) {
-				this.showMessage('error', ltbData.strings.inquiryRequired || 'Bei dieser Spieleranzahl benötigen wir weitere Details. Bitte füllen Sie das Nachrichtenfeld aus.');
+				this.showModalMessage('error', ltbData.strings.inquiryRequired || 'Bei dieser Spieleranzahl benötigen wir weitere Details. Bitte füllen Sie das Nachrichtenfeld aus.');
 				return;
 			}
 
@@ -1022,26 +1054,24 @@
 			.then(data => {
 				console.log('Buchungs-Response:', data);
 				if (data.success) {
-					this.showMessage('success', data.data.message || 'Buchung erfolgreich!');
 					form.reset();
 					this.cart = []; // Cart leeren
 					this.updateCart();
 					this.goToStep(1);
-					// Modal schließen mit kurzer Verzögerung, damit die Erfolgsmeldung sichtbar ist
-					setTimeout(() => {
-						this.hideCheckout();
-					}, 500);
+					this.hideCheckout();
+					// Erfolgsmeldung NACH dem Schließen des Modals anzeigen (sonst verdeckt)
+					this.showMessage('success', data.data.message || 'Buchung erfolgreich!');
 				} else {
 					const errorMessage = data.data?.message || 'Fehler bei der Buchung.';
-					this.showMessage('error', errorMessage);
+					// Fehler IM Modal anzeigen, nicht dahinter
+					this.showModalMessage('error', errorMessage);
 					submitBtn.disabled = false;
 					submitBtn.textContent = originalText;
-					// Modal NICHT schließen bei Fehler, damit der Benutzer die Fehlermeldung sieht
 				}
 			})
 			.catch((error) => {
 				console.error('Fehler in handleCheckout:', error);
-				this.showMessage('error', 'Fehler bei der Buchung. Bitte versuchen Sie es erneut.');
+				this.showModalMessage('error', 'Netzwerkfehler – bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.');
 				submitBtn.disabled = false;
 				submitBtn.textContent = originalText;
 			});
@@ -1054,17 +1084,56 @@
 			return year + '-' + month + '-' + day;
 		},
 
+		// Meldung INNERHALB des Checkout-Modals anzeigen
+		showModalMessage: function(type, message) {
+			const modal = this.container.querySelector('.ltb-checkout-modal');
+			if (!modal) { this.showMessage(type, message); return; }
+			const msgEl = modal.querySelector('.ltb-modal-message');
+			if (!msgEl) { this.showMessage(type, message); return; }
+			msgEl.className = 'ltb-modal-message ltb-modal-message-' + type;
+			msgEl.textContent = message;
+			msgEl.style.display = 'block';
+			// Zum Fehler hinscrollen, falls Modal scrollbar ist
+			msgEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		},
+
 		showMessage: function(type, message) {
 			const messageEl = this.container.querySelector('.ltb-message');
 			if (!messageEl) return;
 
-			messageEl.className = 'ltb-message ltb-message-' + type;
-			messageEl.textContent = message;
-			messageEl.style.display = 'block';
+			// Technische Netzwerkfehler in nutzerfreundliches Deutsch übersetzen
+			if (type === 'error') {
+				if (/fetch|network|failed to fetch|networkerror/i.test(message)) {
+					message = 'Netzwerkfehler – bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.';
+				} else if (/timeout/i.test(message)) {
+					message = 'Zeitüberschreitung – der Server antwortet nicht. Bitte versuchen Sie es erneut.';
+				}
+			}
 
-			setTimeout(() => {
+			// Close-Button nur bei Fehlern
+			const closeBtn = type === 'error'
+				? '<button class="ltb-message-close" aria-label="Meldung schließen" type="button">×</button>'
+				: '';
+
+			messageEl.className = 'ltb-message ltb-message-' + type;
+			messageEl.innerHTML = '<span class="ltb-message-text">' + message + '</span>' + closeBtn;
+			messageEl.style.display = 'flex';
+
+			// Close-Button Handler
+			const closeBtnEl = messageEl.querySelector('.ltb-message-close');
+			if (closeBtnEl) {
+				closeBtnEl.addEventListener('click', () => {
+					messageEl.style.display = 'none';
+					clearTimeout(this._messageTimeout);
+				});
+			}
+
+			// Fehler bleiben 10 Sekunden, Erfolg/Info 5 Sekunden sichtbar
+			clearTimeout(this._messageTimeout);
+			const timeout = type === 'error' ? 10000 : 5000;
+			this._messageTimeout = setTimeout(() => {
 				messageEl.style.display = 'none';
-			}, 5000);
+			}, timeout);
 		}
 	};
 
