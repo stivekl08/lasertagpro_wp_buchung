@@ -673,7 +673,7 @@
 				<div class="ltb-slot-pricing">
 					${priceNum > 0 ? `<span class="ltb-slot-price">€${priceNum.toFixed(2)}</span>` : '<span class="ltb-slot-price">€0.00</span>'}
 				</div>
-				<div class="ltb-slot-availability">0/24 ${ltbData.strings.players || 'Spieler'}</div>
+				<div class="ltb-slot-availability">0/${ltbData.maxPlayers > 0 ? ltbData.maxPlayers : '∞'} ${ltbData.strings.players || 'Spieler'}</div>
 			`;
 
 			slotEl.addEventListener('click', (e) => {
