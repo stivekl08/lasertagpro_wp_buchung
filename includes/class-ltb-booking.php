@@ -198,8 +198,8 @@ class LTB_Booking {
 		);
 		
 		$count = $wpdb->get_var($query);
-		
-		return $count === 0;
+
+		return (int) $count === 0;
 	}
 
 	/**
