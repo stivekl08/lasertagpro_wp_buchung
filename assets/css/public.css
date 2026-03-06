@@ -844,6 +844,26 @@
 	color: var(--ltb-text);
 }
 
+/* Fehlermeldung innerhalb des Modals */
+.ltb-modal-message {
+	padding: 0.75rem 1rem;
+	border-radius: 0.25rem;
+	margin-bottom: 1rem;
+	font-size: 0.9rem;
+}
+
+.ltb-modal-message.ltb-modal-message-error {
+	background-color: rgba(244, 67, 54, 0.15);
+	color: #ef9a9a;
+	border: 1px solid var(--ltb-error);
+}
+
+.ltb-modal-message.ltb-modal-message-success {
+	background-color: rgba(76, 175, 80, 0.15);
+	color: #a5d6a7;
+	border: 1px solid var(--ltb-success);
+}
+
 .ltb-inquiry-info {
 	background-color: var(--ltb-warning);
 	color: var(--ltb-dark-bg);

@@ -319,8 +319,8 @@
 
 				// Spezielle Aktionen pro Schritt
 				if (step === 2) {
-					// Spielmodus automatisch auf "LaserTag" setzen
-					this.selectedGameMode = 'LaserTag';
+					// Spielmodus automatisch auf ersten aktiven Modus aus DB setzen
+					this.selectedGameMode = ltbData.defaultGameMode || 'LaserTag';
 					console.log('Schritt 2 aktiv - Paket-Auswahl');
 				} else if (step === 3) {
 					this.updateDateDisplay();
@@ -347,8 +347,8 @@
 			card.classList.add('ltb-selected');
 			this.selectedDuration = parseInt(card.dataset.duration) || 1;
 			
-			// Spielmodus automatisch setzen
-			this.selectedGameMode = 'LaserTag';
+			// Spielmodus automatisch auf ersten aktiven Modus aus DB setzen
+			this.selectedGameMode = ltbData.defaultGameMode || 'LaserTag';
 			
 			console.log('Ausgewähltes Paket - Dauer:', this.selectedDuration);
 			
@@ -405,7 +405,7 @@
 				btn.classList.add('ltb-selected');
 			}
 
-			this.selectedGameMode = card.dataset.mode;
+			this.selectedGameMode = card.dataset.mode || ltbData.defaultGameMode || 'LaserTag';
 
 			// Weiter-Button anzeigen
 			const nextBtn = this.container.querySelector('.ltb-step-2 .ltb-next-step');
@@ -964,14 +964,23 @@
 			const modal = this.container.querySelector('.ltb-checkout-modal');
 			console.log('Modal gefunden:', modal);
 			if (modal) {
-				modal.style.display = 'flex';
-				// Focus auf erstes Formularfeld setzen
-				const firstInput = modal.querySelector('input, button, textarea, select');
-				if (firstInput) {
-					firstInput.focus();
-				}
-				// Trigger-Button merken für Rücknavigation
+				// Trigger-Button merken VOR focus(), damit document.activeElement noch stimmt
 				this._checkoutTrigger = document.activeElement;
+
+				// Eventuelle vorherige Fehlermeldung im Modal löschen
+				const msgEl = modal.querySelector('.ltb-modal-message');
+				if (msgEl) {
+					msgEl.style.display = 'none';
+					msgEl.textContent = '';
+				}
+
+				modal.style.display = 'flex';
+
+				// Focus auf erstes Texteingabefeld setzen (nicht auf den Close-Button)
+				const firstField = modal.querySelector('input[type="text"], input[type="email"], input[type="tel"], textarea');
+				if (firstField) {
+					firstField.focus();
+				}
 				console.log('Modal angezeigt');
 			} else {
 				console.error('Modal NICHT gefunden!');
@@ -1012,13 +1021,13 @@
 			const inquiryThreshold = parseInt(ltbData.inquiryThreshold) || 0; // 0 = keine Anfrage-Pflicht
 			
 			if (!name || !email) {
-				this.showMessage('error', 'Bitte füllen Sie alle Pflichtfelder aus.');
+				this.showModalMessage('error', 'Bitte füllen Sie alle Pflichtfelder aus.');
 				return;
 			}
-			
+
 			// Prüfen, ob Nachricht bei Anfrage-Schwelle erforderlich ist
 			if (inquiryThreshold > 0 && this.playerCount >= inquiryThreshold && !message) {
-				this.showMessage('error', ltbData.strings.inquiryRequired || 'Bei dieser Spieleranzahl benötigen wir weitere Details. Bitte füllen Sie das Nachrichtenfeld aus.');
+				this.showModalMessage('error', ltbData.strings.inquiryRequired || 'Bei dieser Spieleranzahl benötigen wir weitere Details. Bitte füllen Sie das Nachrichtenfeld aus.');
 				return;
 			}
 
@@ -1045,26 +1054,24 @@
 			.then(data => {
 				console.log('Buchungs-Response:', data);
 				if (data.success) {
-					this.showMessage('success', data.data.message || 'Buchung erfolgreich!');
 					form.reset();
 					this.cart = []; // Cart leeren
 					this.updateCart();
 					this.goToStep(1);
-					// Modal schließen mit kurzer Verzögerung, damit die Erfolgsmeldung sichtbar ist
-					setTimeout(() => {
-						this.hideCheckout();
-					}, 500);
+					this.hideCheckout();
+					// Erfolgsmeldung NACH dem Schließen des Modals anzeigen (sonst verdeckt)
+					this.showMessage('success', data.data.message || 'Buchung erfolgreich!');
 				} else {
 					const errorMessage = data.data?.message || 'Fehler bei der Buchung.';
-					this.showMessage('error', errorMessage);
+					// Fehler IM Modal anzeigen, nicht dahinter
+					this.showModalMessage('error', errorMessage);
 					submitBtn.disabled = false;
 					submitBtn.textContent = originalText;
-					// Modal NICHT schließen bei Fehler, damit der Benutzer die Fehlermeldung sieht
 				}
 			})
 			.catch((error) => {
 				console.error('Fehler in handleCheckout:', error);
-				this.showMessage('error', 'Fehler bei der Buchung. Bitte versuchen Sie es erneut.');
+				this.showModalMessage('error', 'Netzwerkfehler – bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.');
 				submitBtn.disabled = false;
 				submitBtn.textContent = originalText;
 			});
@@ -1075,6 +1082,19 @@
 			const month = String(date.getMonth() + 1).padStart(2, '0');
 			const day = String(date.getDate()).padStart(2, '0');
 			return year + '-' + month + '-' + day;
+		},
+
+		// Meldung INNERHALB des Checkout-Modals anzeigen
+		showModalMessage: function(type, message) {
+			const modal = this.container.querySelector('.ltb-checkout-modal');
+			if (!modal) { this.showMessage(type, message); return; }
+			const msgEl = modal.querySelector('.ltb-modal-message');
+			if (!msgEl) { this.showMessage(type, message); return; }
+			msgEl.className = 'ltb-modal-message ltb-modal-message-' + type;
+			msgEl.textContent = message;
+			msgEl.style.display = 'block';
+			// Zum Fehler hinscrollen, falls Modal scrollbar ist
+			msgEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 		},
 
 		showMessage: function(type, message) {

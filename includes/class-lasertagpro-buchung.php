@@ -132,16 +132,26 @@ class LaserTagPro_Buchung {
 		
 		$max_players = get_option('ltb_max_players', 0);
 		$max_players = ($max_players === '' || $max_players === null) ? 0 : absint($max_players);
-		
+
 		$inquiry_threshold = get_option('ltb_inquiry_threshold', 0);
 		$inquiry_threshold = ($inquiry_threshold === '' || $inquiry_threshold === null) ? 0 : absint($inquiry_threshold);
-		
+
+		// Ersten aktiven Spielmodus aus der DB lesen (statt 'LaserTag' hardcoden)
+		global $wpdb;
+		$default_game_mode = $wpdb->get_var(
+			"SELECT name FROM {$wpdb->prefix}ltb_game_modes WHERE active = 1 ORDER BY sort_order ASC, name ASC LIMIT 1"
+		);
+		if (empty($default_game_mode)) {
+			$default_game_mode = 'LaserTag';
+		}
+
 		wp_localize_script('ltb-public-script', 'ltbData', array(
 			'ajaxUrl'          => admin_url('admin-ajax.php'),
 			'nonce'            => wp_create_nonce('ltb_nonce'),
 			'minPlayers'       => absint(get_option('ltb_min_players', 1)),
 			'maxPlayers'       => $max_players,
 			'inquiryThreshold' => $inquiry_threshold,
+			'defaultGameMode'  => $default_game_mode,
 			'prices'           => array(
 				1 => (float) get_option('ltb_price_1h', 25.00),
 				2 => (float) get_option('ltb_price_2h', 35.00),
