@@ -10,6 +10,17 @@ if (!defined('ABSPATH')) {
 class LTB_Email {
 
 	/**
+	 * wp_mail_failed-Fehler ins Error-Log schreiben
+	 */
+	public static function log_mail_error($wp_error) {
+		$message = $wp_error->get_error_message();
+		$data    = $wp_error->get_error_data();
+		$to      = isset($data['to']) ? (is_array($data['to']) ? implode(', ', $data['to']) : $data['to']) : 'unbekannt';
+		$subject = isset($data['subject']) ? $data['subject'] : 'unbekannt';
+		error_log('LTB wp_mail_failed: to=' . $to . ' | subject=' . $subject . ' | error=' . $message);
+	}
+
+	/**
 	 * Reservierungsanfrage-E-Mail senden (bei Buchung)
 	 *
 	 * @param int $reservation_id Reservierungs-ID
@@ -39,6 +50,9 @@ class LTB_Email {
 		ob_start();
 
 		$result = wp_mail($to, $subject, $message, $headers);
+		if (!$result) {
+			error_log('LTB wp_mail FEHLGESCHLAGEN: Reservierungsanfrage an ' . $to);
+		}
 
 		// *** ADMIN-BENACHRICHTIGUNG SENDEN ***
 		self::send_admin_notification($reservation);
@@ -184,6 +198,9 @@ class LTB_Email {
 		ob_start();
 
 		$result = wp_mail($to, $subject, $message, $headers);
+		if (!$result) {
+			error_log('LTB wp_mail FEHLGESCHLAGEN: Buchungsbestätigung an ' . $to);
+		}
 
 		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
 		LTB_Notifications::notify_confirmed_reservation($reservation);
@@ -226,6 +243,9 @@ class LTB_Email {
 		ob_start();
 
 		$result = wp_mail($to, $subject, $message, $headers);
+		if (!$result) {
+			error_log('LTB wp_mail FEHLGESCHLAGEN: Stornierungsbestätigung an ' . $to);
+		}
 
 		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
 		LTB_Notifications::notify_cancelled_reservation($reservation);

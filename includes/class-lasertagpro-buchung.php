@@ -65,7 +65,10 @@ class LaserTagPro_Buchung {
 		require_once LTB_PLUGIN_DIR . 'includes/class-ltb-export-import.php';
 		require_once LTB_PLUGIN_DIR . 'includes/class-ltb-sync.php';
 		require_once LTB_PLUGIN_DIR . 'includes/class-ltb-notifications.php';
-		
+
+		// wp_mail-Fehler ins Error-Log schreiben (zeigt WARUM E-Mails scheitern)
+		add_action('wp_mail_failed', array('LTB_Email', 'log_mail_error'), 10, 1);
+
 		if (is_admin()) {
 			require_once LTB_PLUGIN_DIR . 'admin/class-ltb-admin.php';
 			$this->admin = new LTB_Admin();
