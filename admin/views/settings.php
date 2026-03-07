@@ -205,15 +205,73 @@ if (isset($_GET['settings-updated'])) {
 			</tr>
 		</table>
 
-		<div class="notice notice-info">
-			<p>
-				<strong><?php echo esc_html__('Hinweis:', 'lasertagpro-buchung'); ?></strong>
-				<?php echo esc_html__('Die E-Mail-Einstellungen finden Sie unter', 'lasertagpro-buchung'); ?>
-				<a href="<?php echo esc_url(admin_url('options-general.php#ltb_email_settings')); ?>">
-					<?php echo esc_html__('Einstellungen > Allgemein', 'lasertagpro-buchung'); ?>
-				</a>
-			</p>
-		</div>
+		<h2><?php echo esc_html__('E-Mail-Einstellungen', 'lasertagpro-buchung'); ?></h2>
+		<table class="form-table">
+			<tr>
+				<th><label for="ltb_email_from"><?php echo esc_html__('Absender-E-Mail', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="email" id="ltb_email_from" name="ltb_email_from" value="<?php echo esc_attr(get_option('ltb_email_from', get_option('admin_email'))); ?>" class="regular-text">
+					<p class="description"><?php echo esc_html__('Absenderadresse für alle Buchungs-E-Mails.', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_email_from_name"><?php echo esc_html__('Absender-Name', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="text" id="ltb_email_from_name" name="ltb_email_from_name" value="<?php echo esc_attr(get_option('ltb_email_from_name', get_bloginfo('name'))); ?>" class="regular-text">
+				</td>
+			</tr>
+		</table>
+
+		<h2><?php echo esc_html__('SMTP-Konfiguration', 'lasertagpro-buchung'); ?></h2>
+		<p class="description"><?php echo esc_html__('Falls E-Mails nicht ankommen, hier SMTP aktivieren. Empfohlen für alle Produktivumgebungen.', 'lasertagpro-buchung'); ?></p>
+		<table class="form-table">
+			<tr>
+				<th><label for="ltb_smtp_enabled"><?php echo esc_html__('SMTP aktivieren', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<label>
+						<input type="checkbox" id="ltb_smtp_enabled" name="ltb_smtp_enabled" value="1" <?php checked(get_option('ltb_smtp_enabled', 0), 1); ?>>
+						<?php echo esc_html__('SMTP zum Versenden von E-Mails verwenden', 'lasertagpro-buchung'); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_smtp_host"><?php echo esc_html__('SMTP-Host', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="text" id="ltb_smtp_host" name="ltb_smtp_host" value="<?php echo esc_attr(get_option('ltb_smtp_host', '')); ?>" class="regular-text" placeholder="smtp.gmail.com">
+					<p class="description"><?php echo esc_html__('z.B. smtp.gmail.com, smtp.ionos.de, mail.ihr-server.de', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_smtp_port"><?php echo esc_html__('SMTP-Port', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="number" id="ltb_smtp_port" name="ltb_smtp_port" value="<?php echo esc_attr(get_option('ltb_smtp_port', 587)); ?>" class="small-text" min="1" max="65535">
+					<p class="description"><?php echo esc_html__('587 für TLS/STARTTLS (empfohlen), 465 für SSL, 25 ohne Verschlüsselung', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_smtp_encryption"><?php echo esc_html__('Verschlüsselung', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<select id="ltb_smtp_encryption" name="ltb_smtp_encryption">
+						<option value="tls" <?php selected(get_option('ltb_smtp_encryption', 'tls'), 'tls'); ?>>TLS / STARTTLS (Port 587, empfohlen)</option>
+						<option value="ssl" <?php selected(get_option('ltb_smtp_encryption', 'tls'), 'ssl'); ?>>SSL (Port 465)</option>
+						<option value="" <?php selected(get_option('ltb_smtp_encryption', 'tls'), ''); ?>>Keine Verschlüsselung (Port 25)</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_smtp_username"><?php echo esc_html__('SMTP-Benutzername', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="text" id="ltb_smtp_username" name="ltb_smtp_username" value="<?php echo esc_attr(get_option('ltb_smtp_username', '')); ?>" class="regular-text" placeholder="info@ihre-domain.de" autocomplete="off">
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_smtp_password"><?php echo esc_html__('SMTP-Passwort', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="password" id="ltb_smtp_password" name="ltb_smtp_password" value="<?php echo esc_attr(get_option('ltb_smtp_password', '')); ?>" class="regular-text" autocomplete="new-password">
+					<p class="description"><?php echo esc_html__('Bei Gmail: App-Passwort verwenden (nicht das Google-Konto-Passwort).', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+		</table>
 
 		<?php submit_button(); ?>
 	</form>
