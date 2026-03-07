@@ -116,8 +116,8 @@ class LTB_Booking {
 			self::notify_admin_dav_sync_failed($reservation_id, $error_msg);
 		}
 
-		// Reservierungsanfrage-E-Mail asynchron via WP-Cron senden
-		wp_schedule_single_event(time(), 'ltb_send_booking_email', array($reservation_id));
+		// Reservierungsanfrage-E-Mail sofort senden
+		do_action('ltb_send_booking_email', $reservation_id);
 
 		return $reservation_id;
 	}
