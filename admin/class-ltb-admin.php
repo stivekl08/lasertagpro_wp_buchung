@@ -98,6 +98,9 @@ class LTB_Admin {
 		register_setting('ltb_settings', 'ltb_price_1h', array('sanitize_callback' => $price_sanitize));
 		register_setting('ltb_settings', 'ltb_price_2h', array('sanitize_callback' => $price_sanitize));
 		register_setting('ltb_settings', 'ltb_price_3h', array('sanitize_callback' => $price_sanitize));
+
+		register_setting('ltb_settings', 'ltb_confirmation_text', array('sanitize_callback' => 'sanitize_textarea_field'));
+		register_setting('ltb_settings', 'ltb_confirmation_maps_url', array('sanitize_callback' => 'esc_url_raw'));
 	}
 
 	/**

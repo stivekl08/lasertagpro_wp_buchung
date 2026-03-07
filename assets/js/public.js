@@ -153,6 +153,12 @@
 			const modalCancel = this.container.querySelector('.ltb-modal-cancel');
 			if (modalClose) modalClose.addEventListener('click', () => this.hideCheckout());
 			if (modalCancel) modalCancel.addEventListener('click', () => this.hideCheckout());
+
+			// Bestätigungsschritt: OK-Button → zurück zu Schritt 1
+			const confirmOkBtn = this.container.querySelector('.ltb-btn-confirmation-ok');
+			if (confirmOkBtn) {
+				confirmOkBtn.addEventListener('click', () => this.goToStep(1));
+			}
 		},
 
 		changePlayerCount: function(delta) {
@@ -270,31 +276,33 @@
 		goToStep: function(step) {
 			console.log('goToStep aufgerufen mit Schritt:', step, 'Aktueller Schritt:', this.currentStep);
 			
-			// Validierung vor Schrittwechsel
-			if (step === 2) {
-				const minPlayers = parseInt(ltbData.minPlayers) || 1;
-				const maxPlayers = parseInt(ltbData.maxPlayers) || 0; // 0 = keine Beschränkung
-				
-				// Sicherstellen, dass playerCount eine Zahl ist
-				const currentCount = parseInt(this.playerCount) || minPlayers;
-				this.playerCount = currentCount;
-				
-				if (currentCount < minPlayers) {
-					this.showMessage('error', 'Mindestanzahl: ' + minPlayers + ' Spieler');
+			// Validierung vor Schrittwechsel (nicht für Schritt 5 / Bestätigungsseite)
+			if (step !== 5) {
+				if (step === 2) {
+					const minPlayers = parseInt(ltbData.minPlayers) || 1;
+					const maxPlayers = parseInt(ltbData.maxPlayers) || 0; // 0 = keine Beschränkung
+					
+					// Sicherstellen, dass playerCount eine Zahl ist
+					const currentCount = parseInt(this.playerCount) || minPlayers;
+					this.playerCount = currentCount;
+					
+					if (currentCount < minPlayers) {
+						this.showMessage('error', 'Mindestanzahl: ' + minPlayers + ' Spieler');
+						return;
+					}
+					if (maxPlayers > 0 && currentCount > maxPlayers) {
+						this.showMessage('error', 'Maximalanzahl: ' + maxPlayers + ' Spieler');
+						return;
+					}
+				}
+				if (step === 3 && !this.selectedDuration) {
+					this.showMessage('error', 'Bitte wählen Sie ein Paket.');
 					return;
 				}
-				if (maxPlayers > 0 && currentCount > maxPlayers) {
-					this.showMessage('error', 'Maximalanzahl: ' + maxPlayers + ' Spieler');
+				if (step === 4 && !this.currentDate) {
+					this.showMessage('error', 'Bitte wählen Sie ein Datum.');
 					return;
 				}
-			}
-			if (step === 3 && !this.selectedDuration) {
-				this.showMessage('error', 'Bitte wählen Sie ein Paket.');
-				return;
-			}
-			if (step === 4 && !this.currentDate) {
-				this.showMessage('error', 'Bitte wählen Sie ein Datum.');
-				return;
 			}
 
 			// Alle Schritte verstecken
@@ -1057,10 +1065,8 @@
 					form.reset();
 					this.cart = []; // Cart leeren
 					this.updateCart();
-					this.goToStep(1);
 					this.hideCheckout();
-					// Erfolgsmeldung NACH dem Schließen des Modals anzeigen (sonst verdeckt)
-					this.showMessage('success', data.data.message || 'Buchung erfolgreich!');
+					this.goToStep(5);
 				} else {
 					const errorMessage = data.data?.message || 'Fehler bei der Buchung.';
 					// Fehler IM Modal anzeigen, nicht dahinter

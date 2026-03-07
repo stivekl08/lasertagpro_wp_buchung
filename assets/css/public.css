@@ -1053,3 +1053,52 @@
 		animation: none !important;
 	}
 }
+
+/* ============================================================
+   Schritt 5: Bestätigungsseite
+   ============================================================ */
+.ltb-step-confirmation {
+	text-align: center;
+	padding: 60px 20px;
+}
+
+.ltb-confirmation-icon {
+	font-size: 120px;
+	color: #2ecc71;
+	line-height: 1;
+	margin-bottom: 24px;
+}
+
+.ltb-confirmation-title {
+	font-size: 2rem;
+	font-weight: 700;
+	color: #1a1a1a;
+	margin-bottom: 16px;
+}
+
+.ltb-confirmation-text {
+	font-size: 1.1rem;
+	color: #555;
+	max-width: 480px;
+	margin: 0 auto 24px;
+	line-height: 1.6;
+}
+
+.ltb-confirmation-extra {
+	font-size: 1rem;
+	color: #333;
+	max-width: 480px;
+	margin: 0 auto 24px;
+}
+
+.ltb-btn-maps {
+	display: inline-block;
+	margin-bottom: 16px;
+}
+
+.ltb-btn-confirmation-ok {
+	font-size: 1.3rem;
+	padding: 18px 60px;
+	border-radius: 8px;
+	margin-top: 16px;
+}

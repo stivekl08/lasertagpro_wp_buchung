@@ -94,7 +94,27 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 			</div>
 		</div>
 
-		<!-- Rabatt-Banner ENTFERNT -->
+		<!-- Schritt 5: Bestätigung -->
+		<?php
+		$confirmation_text = get_option('ltb_confirmation_text', '');
+		$confirmation_maps_url = get_option('ltb_confirmation_maps_url', '');
+		?>
+		<div class="ltb-step ltb-step-5 ltb-step-confirmation" data-step="5" style="display: none;">
+			<div class="ltb-confirmation-icon">✓</div>
+			<h2 class="ltb-confirmation-title"><?php echo esc_html__('Die Reservierung ist in Bearbeitung!', 'lasertagpro-buchung'); ?></h2>
+			<p class="ltb-confirmation-text">
+				<?php echo esc_html__('Sie erhalten in Kürze eine E-Mail mit Ihren Buchungsdetails. Ihre Reservierung wird schnellstmöglich von uns bestätigt.', 'lasertagpro-buchung'); ?>
+			</p>
+			<?php if (!empty($confirmation_text)): ?>
+				<p class="ltb-confirmation-extra"><?php echo esc_html($confirmation_text); ?></p>
+			<?php endif; ?>
+			<?php if (!empty($confirmation_maps_url)): ?>
+				<a href="<?php echo esc_url($confirmation_maps_url); ?>" target="_blank" rel="noopener" class="ltb-btn-secondary ltb-btn-maps">
+					<?php echo esc_html__('Anfahrt mit Google Maps', 'lasertagpro-buchung'); ?>
+				</a>
+			<?php endif; ?>
+			<button type="button" class="ltb-btn-primary ltb-btn-confirmation-ok"><?php echo esc_html__('OK', 'lasertagpro-buchung'); ?></button>
+		</div>
 	</div>
 
 	<!-- Warenkorb-Sidebar -->
