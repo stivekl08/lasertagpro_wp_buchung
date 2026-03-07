@@ -255,6 +255,8 @@ class LTB_Email {
 	 * @return string E-Mail-HTML
 	 */
 	private static function get_booking_request_email_template($reservation) {
+		$maps_url = get_option('ltb_confirmation_maps_url', '');
+
 		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
 		// Deutsches 24-Stunden-Format verwenden
 		// Extrahiere nur das Datum (falls booking_date bereits eine Zeit enthält)
@@ -277,6 +279,7 @@ class LTB_Email {
 				.content { padding: 20px; background-color: #f9f9f9; }
 				.details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #2196F3; }
 				.info-box { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; }
+				.button-maps { display: inline-block; padding: 12px 24px; background-color: #1a73e8; color: white; text-decoration: none; border-radius: 4px; margin-top: 10px; }
 			</style>
 		</head>
 		<body>
@@ -306,7 +309,11 @@ class LTB_Email {
 					</div>
 					
 					<p><?php echo esc_html__('Wir werden Ihre Anfrage schnellstmöglich bearbeiten und Sie per E-Mail informieren.', 'lasertagpro-buchung'); ?></p>
-					
+
+					<?php if (!empty($maps_url)): ?>
+					<p><a href="<?php echo esc_url($maps_url); ?>" class="button-maps">📍 <?php echo esc_html__('Anfahrt mit Google Maps', 'lasertagpro-buchung'); ?></a></p>
+					<?php endif; ?>
+
 					<p><?php echo esc_html__('Mit freundlichen Grüßen,', 'lasertagpro-buchung'); ?><br><?php echo esc_html(get_bloginfo('name')); ?></p>
 				</div>
 			</div>
