@@ -306,7 +306,7 @@ class LTB_Email {
 					</div>
 					
 					<p><?php echo esc_html__('Wir werden Ihre Anfrage schnellstmöglich bearbeiten und Sie per E-Mail informieren.', 'lasertagpro-buchung'); ?></p>
-					
+
 					<p><?php echo esc_html__('Mit freundlichen Grüßen,', 'lasertagpro-buchung'); ?><br><?php echo esc_html(get_bloginfo('name')); ?></p>
 				</div>
 			</div>
@@ -329,7 +329,9 @@ class LTB_Email {
 			),
 			home_url()
 		);
-		
+
+		$maps_url = get_option('ltb_confirmation_maps_url', '');
+
 		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
 		// Deutsches 24-Stunden-Format verwenden
 		// Extrahiere nur das Datum (falls booking_date bereits eine Zeit enthält)
@@ -338,7 +340,7 @@ class LTB_Email {
 		$end_time_obj = new DateTime($date_only . ' ' . $reservation->end_time);
 		$time_formatted = $start_time_obj->format('H:i');
 		$end_time_formatted = $end_time_obj->format('H:i');
-		
+
 		ob_start();
 		?>
 		<!DOCTYPE html>
@@ -352,6 +354,7 @@ class LTB_Email {
 				.content { padding: 20px; background-color: #f9f9f9; }
 				.details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }
 				.button { display: inline-block; padding: 12px 24px; background-color: #f44336; color: white; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+				.button-maps { display: inline-block; padding: 12px 24px; background-color: #1a73e8; color: white; text-decoration: none; border-radius: 4px; margin-top: 10px; }
 			</style>
 		</head>
 		<body>
@@ -362,7 +365,7 @@ class LTB_Email {
 				<div class="content">
 					<p><?php echo esc_html__('Hallo', 'lasertagpro-buchung'); ?> <?php echo esc_html($reservation->name); ?>,</p>
 					<p><?php echo esc_html__('Ihre Reservierung wurde bestätigt!', 'lasertagpro-buchung'); ?></p>
-					
+
 					<div class="details">
 						<h2><?php echo esc_html__('Ihre Reservierungsdetails:', 'lasertagpro-buchung'); ?></h2>
 						<p><strong><?php echo esc_html__('Datum:', 'lasertagpro-buchung'); ?></strong> <?php echo esc_html($date_formatted); ?></p>
@@ -374,10 +377,14 @@ class LTB_Email {
 							<p><strong><?php echo esc_html__('Nachricht:', 'lasertagpro-buchung'); ?></strong><br><?php echo nl2br(esc_html($reservation->message)); ?></p>
 						<?php endif; ?>
 					</div>
-					
+
 					<p><?php echo esc_html__('Falls Sie Ihre Reservierung stornieren möchten, klicken Sie bitte auf den folgenden Link:', 'lasertagpro-buchung'); ?></p>
 					<p><a href="<?php echo esc_url($cancel_url); ?>" class="button"><?php echo esc_html__('Reservierung stornieren', 'lasertagpro-buchung'); ?></a></p>
-					
+
+					<?php if (!empty($maps_url)): ?>
+					<p><a href="<?php echo esc_url($maps_url); ?>" class="button-maps">📍 <?php echo esc_html__('Anfahrt mit Google Maps', 'lasertagpro-buchung'); ?></a></p>
+					<?php endif; ?>
+
 					<p><?php echo esc_html__('Wir freuen uns auf Ihren Besuch!', 'lasertagpro-buchung'); ?></p>
 				</div>
 			</div>
