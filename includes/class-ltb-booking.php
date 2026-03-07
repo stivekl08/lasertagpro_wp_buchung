@@ -110,10 +110,8 @@ class LTB_Booking {
 			self::notify_admin_dav_sync_failed($reservation_id, $error_msg);
 		}
 
-		// E-Mail asynchron senden
-		if (!wp_next_scheduled('ltb_send_booking_request_email', array($reservation_id))) {
-			wp_schedule_single_event(time() + 1, 'ltb_send_booking_request_email', array($reservation_id));
-		}
+		// Reservierungsanfrage-E-Mail senden
+		LTB_Email::send_booking_request($reservation_id);
 
 		return $reservation_id;
 	}

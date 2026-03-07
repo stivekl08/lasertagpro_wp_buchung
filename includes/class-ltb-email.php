@@ -35,41 +35,22 @@ class LTB_Email {
 			'From: ' . $from_name . ' <' . $from_email . '>',
 		);
 		
-		// Output puffern, damit SMTP-Debug-Output nicht in AJAX-Response gelangt
-		// Alle existierenden Buffer-Ebenen sammeln
-		$existing_buffers = array();
-		$buffer_level = ob_get_level();
-		for ($i = 0; $i < $buffer_level; $i++) {
-			$existing_buffers[] = ob_get_clean();
-		}
-		
-		// Neuen Buffer starten
+		// SMTP-Debug-Output abfangen (neuen Buffer-Level hinzufügen, bestehende nicht zerstören)
 		ob_start();
-		
+
 		$result = wp_mail($to, $subject, $message, $headers);
-		
+
 		// *** ADMIN-BENACHRICHTIGUNG SENDEN ***
 		self::send_admin_notification($reservation);
-		
+
 		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
 		LTB_Notifications::notify_new_reservation($reservation);
-		
-		// Alle Outputs sammeln und löschen
+
 		$output = ob_get_clean();
-		
-		// Buffer wiederherstellen
-		foreach (array_reverse($existing_buffers) as $buffer_content) {
-			ob_start();
-			if (!empty($buffer_content)) {
-				echo $buffer_content;
-			}
-		}
-		
-		// Nur loggen, nicht ausgeben
 		if (!empty($output)) {
 			error_log('LTB Email Output: ' . $output);
 		}
-		
+
 		return $result;
 	}
 	
@@ -199,38 +180,19 @@ class LTB_Email {
 			'From: ' . $from_name . ' <' . $from_email . '>',
 		);
 		
-		// Output puffern, damit SMTP-Debug-Output nicht in AJAX-Response gelangt
-		// Alle existierenden Buffer-Ebenen sammeln
-		$existing_buffers = array();
-		$buffer_level = ob_get_level();
-		for ($i = 0; $i < $buffer_level; $i++) {
-			$existing_buffers[] = ob_get_clean();
-		}
-		
-		// Neuen Buffer starten
+		// SMTP-Debug-Output abfangen (neuen Buffer-Level hinzufügen, bestehende nicht zerstören)
 		ob_start();
-		
+
 		$result = wp_mail($to, $subject, $message, $headers);
-		
+
 		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
 		LTB_Notifications::notify_confirmed_reservation($reservation);
-		
-		// Alle Outputs sammeln und löschen
+
 		$output = ob_get_clean();
-		
-		// Buffer wiederherstellen
-		foreach (array_reverse($existing_buffers) as $buffer_content) {
-			ob_start();
-			if (!empty($buffer_content)) {
-				echo $buffer_content;
-			}
-		}
-		
-		// Nur loggen, nicht ausgeben
 		if (!empty($output)) {
 			error_log('LTB Email Output: ' . $output);
 		}
-		
+
 		return $result;
 	}
 
@@ -260,38 +222,19 @@ class LTB_Email {
 			'From: ' . $from_name . ' <' . $from_email . '>',
 		);
 		
-		// Output puffern, damit SMTP-Debug-Output nicht in AJAX-Response gelangt
-		// Alle existierenden Buffer-Ebenen sammeln
-		$existing_buffers = array();
-		$buffer_level = ob_get_level();
-		for ($i = 0; $i < $buffer_level; $i++) {
-			$existing_buffers[] = ob_get_clean();
-		}
-		
-		// Neuen Buffer starten
+		// SMTP-Debug-Output abfangen (neuen Buffer-Level hinzufügen, bestehende nicht zerstören)
 		ob_start();
-		
+
 		$result = wp_mail($to, $subject, $message, $headers);
-		
+
 		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
 		LTB_Notifications::notify_cancelled_reservation($reservation);
-		
-		// Alle Outputs sammeln und löschen
+
 		$output = ob_get_clean();
-		
-		// Buffer wiederherstellen
-		foreach (array_reverse($existing_buffers) as $buffer_content) {
-			ob_start();
-			if (!empty($buffer_content)) {
-				echo $buffer_content;
-			}
-		}
-		
-		// Nur loggen, nicht ausgeben
 		if (!empty($output)) {
 			error_log('LTB Email Output: ' . $output);
 		}
-		
+
 		return $result;
 	}
 

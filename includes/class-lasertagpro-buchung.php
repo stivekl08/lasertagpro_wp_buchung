@@ -66,10 +66,6 @@ class LaserTagPro_Buchung {
 		require_once LTB_PLUGIN_DIR . 'includes/class-ltb-sync.php';
 		require_once LTB_PLUGIN_DIR . 'includes/class-ltb-notifications.php';
 		
-		// E-Mail-Versand als Cron-Job registrieren (verhindert SMTP-Debug-Output in AJAX-Response)
-		// Reservierungsanfrage-E-Mail (bei Buchung)
-		add_action('ltb_send_booking_request_email', array('LTB_Email', 'send_booking_request'), 10, 1);
-		
 		if (is_admin()) {
 			require_once LTB_PLUGIN_DIR . 'admin/class-ltb-admin.php';
 			$this->admin = new LTB_Admin();
