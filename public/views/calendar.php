@@ -94,12 +94,40 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 			</div>
 		</div>
 
-		<!-- Schritt 5: Bestätigung -->
+		<!-- Schritt 5: Kontaktdaten -->
+		<div class="ltb-step ltb-step-5 ltb-step-checkout" data-step="5" style="display: none;">
+			<h2 class="ltb-step-title">5. <?php echo esc_html__('Deine Kontaktdaten', 'lasertagpro-buchung'); ?></h2>
+			<div class="ltb-step-message" role="alert" style="display:none;"></div>
+			<form id="ltb-checkout-form" class="ltb-checkout-form">
+				<div class="ltb-form-group">
+					<label for="ltb-checkout-name"><?php echo esc_html__('Name', 'lasertagpro-buchung'); ?> <span class="required">*</span></label>
+					<input type="text" id="ltb-checkout-name" name="name" required>
+				</div>
+				<div class="ltb-form-group">
+					<label for="ltb-checkout-email"><?php echo esc_html__('E-Mail', 'lasertagpro-buchung'); ?> <span class="required">*</span></label>
+					<input type="email" id="ltb-checkout-email" name="email" required>
+				</div>
+				<div class="ltb-form-group">
+					<label for="ltb-checkout-phone"><?php echo esc_html__('Telefon', 'lasertagpro-buchung'); ?> <span class="recommended"><?php echo esc_html__('(optional)', 'lasertagpro-buchung'); ?></span></label>
+					<input type="tel" id="ltb-checkout-phone" name="phone" placeholder="+43 660 1234567">
+				</div>
+				<div class="ltb-form-group">
+					<label for="ltb-checkout-message"><?php echo esc_html__('Nachricht', 'lasertagpro-buchung'); ?></label>
+					<textarea id="ltb-checkout-message" name="message" rows="4"></textarea>
+				</div>
+				<div class="ltb-step-actions">
+					<button type="button" class="ltb-btn-secondary ltb-prev-step" data-prev="4"><?php echo esc_html__('Zurück', 'lasertagpro-buchung'); ?></button>
+					<button type="submit" class="ltb-btn-primary"><?php echo esc_html__('Jetzt buchen', 'lasertagpro-buchung'); ?></button>
+				</div>
+			</form>
+		</div>
+
+		<!-- Schritt 6: Bestätigung -->
 		<?php
 		$confirmation_text = get_option('ltb_confirmation_text', '');
 		$confirmation_maps_url = get_option('ltb_confirmation_maps_url', '');
 		?>
-		<div class="ltb-step ltb-step-5 ltb-step-confirmation" data-step="5" style="display: none;">
+		<div class="ltb-step ltb-step-6 ltb-step-confirmation" data-step="6" style="display: none;">
 			<div class="ltb-confirmation-icon">✓</div>
 			<h2 class="ltb-confirmation-title"><?php echo esc_html__('Die Reservierung ist in Bearbeitung!', 'lasertagpro-buchung'); ?></h2>
 			<p class="ltb-confirmation-text">
@@ -140,41 +168,6 @@ $game_modes = $wpdb->get_results("SELECT * FROM $table WHERE active = 1 ORDER BY
 				</div>
 			</div>
 			<button type="button" class="ltb-btn-checkout" disabled><?php echo esc_html__('Bestellung abschließen', 'lasertagpro-buchung'); ?></button>
-		</div>
-	</div>
-
-	<!-- Checkout-Formular (Modal) -->
-	<div class="ltb-checkout-modal"
-		 style="display: none;"
-		 role="dialog"
-		 aria-modal="true"
-		 aria-labelledby="ltb-checkout-title">
-		<div class="ltb-modal-content">
-			<button type="button" class="ltb-modal-close" aria-label="<?php echo esc_attr__('Schließen', 'lasertagpro-buchung'); ?>">×</button>
-			<h2 id="ltb-checkout-title"><?php echo esc_html__('Bestellung abschließen', 'lasertagpro-buchung'); ?></h2>
-			<div class="ltb-modal-message" role="alert" style="display:none;"></div>
-			<form id="ltb-checkout-form" class="ltb-checkout-form">
-				<div class="ltb-form-group">
-					<label for="ltb-checkout-name"><?php echo esc_html__('Name', 'lasertagpro-buchung'); ?> <span class="required">*</span></label>
-					<input type="text" id="ltb-checkout-name" name="name" required>
-				</div>
-				<div class="ltb-form-group">
-					<label for="ltb-checkout-email"><?php echo esc_html__('E-Mail', 'lasertagpro-buchung'); ?> <span class="required">*</span></label>
-					<input type="email" id="ltb-checkout-email" name="email" required>
-				</div>
-				<div class="ltb-form-group">
-					<label for="ltb-checkout-phone"><?php echo esc_html__('Telefon', 'lasertagpro-buchung'); ?> <span class="recommended"><?php echo esc_html__('(optional)', 'lasertagpro-buchung'); ?></span></label>
-					<input type="tel" id="ltb-checkout-phone" name="phone" placeholder="+43 660 1234567">
-				</div>
-				<div class="ltb-form-group">
-					<label for="ltb-checkout-message"><?php echo esc_html__('Nachricht', 'lasertagpro-buchung'); ?></label>
-					<textarea id="ltb-checkout-message" name="message" rows="4"></textarea>
-				</div>
-				<div class="ltb-form-actions">
-					<button type="button" class="ltb-btn-secondary ltb-modal-cancel"><?php echo esc_html__('Abbrechen', 'lasertagpro-buchung'); ?></button>
-					<button type="submit" class="ltb-btn-primary"><?php echo esc_html__('Buchen', 'lasertagpro-buchung'); ?></button>
-				</div>
-			</form>
 		</div>
 	</div>
 

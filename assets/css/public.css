@@ -1102,3 +1102,30 @@
 	border-radius: 8px;
 	margin-top: 16px;
 }
+
+/* ============================================================
+   Schritt 5: Inline Checkout-Formular
+   ============================================================ */
+.ltb-step-checkout .ltb-checkout-form {
+	max-width: 480px;
+	margin: 0 auto;
+}
+
+.ltb-step-message {
+	padding: 10px 16px;
+	border-radius: 6px;
+	margin-bottom: 16px;
+	font-size: 0.95rem;
+}
+
+.ltb-step-message-error {
+	background: #fdecea;
+	color: #c0392b;
+	border-left: 4px solid #c0392b;
+}
+
+.ltb-step-message-success {
+	background: #eafaf1;
+	color: #27ae60;
+	border-left: 4px solid #27ae60;
+}

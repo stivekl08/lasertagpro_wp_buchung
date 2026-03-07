@@ -134,25 +134,15 @@
 			const checkoutBtn = this.container.querySelector('.ltb-btn-checkout');
 			console.log('Checkout-Button gefunden:', checkoutBtn);
 			if (checkoutBtn) {
-				checkoutBtn.addEventListener('click', () => {
-					console.log('Checkout-Button geklickt!');
-					this.showCheckout();
-				});
-			} else {
-				console.error('Checkout-Button NICHT gefunden!');
+				checkoutBtn.addEventListener('click', () => this.goToStep(5));
 			}
 
 
-			// Checkout-Formular
+			// Checkout-Formular (inline Schritt 5)
 			const checkoutForm = this.container.querySelector('#ltb-checkout-form');
 			if (checkoutForm) {
 				checkoutForm.addEventListener('submit', (e) => this.handleCheckout(e));
 			}
-
-			const modalClose = this.container.querySelector('.ltb-modal-close');
-			const modalCancel = this.container.querySelector('.ltb-modal-cancel');
-			if (modalClose) modalClose.addEventListener('click', () => this.hideCheckout());
-			if (modalCancel) modalCancel.addEventListener('click', () => this.hideCheckout());
 
 			// Bestätigungsschritt: OK-Button → zurück zu Schritt 1
 			const confirmOkBtn = this.container.querySelector('.ltb-btn-confirmation-ok');
@@ -276,8 +266,8 @@
 		goToStep: function(step) {
 			console.log('goToStep aufgerufen mit Schritt:', step, 'Aktueller Schritt:', this.currentStep);
 			
-			// Validierung vor Schrittwechsel (nicht für Schritt 5 / Bestätigungsseite)
-			if (step !== 5) {
+			// Validierung vor Schrittwechsel (nicht für Schritte 5+6)
+			if (step !== 5 && step !== 6) {
 				if (step === 2) {
 					const minPlayers = parseInt(ltbData.minPlayers) || 1;
 					const maxPlayers = parseInt(ltbData.maxPlayers) || 0; // 0 = keine Beschränkung
@@ -967,49 +957,9 @@
 			}
 		},
 
-		showCheckout: function() {
-			console.log('showCheckout aufgerufen');
-			const modal = this.container.querySelector('.ltb-checkout-modal');
-			console.log('Modal gefunden:', modal);
-			if (modal) {
-				// Trigger-Button merken VOR focus(), damit document.activeElement noch stimmt
-				this._checkoutTrigger = document.activeElement;
+		// showCheckout: ersetzt durch goToStep(5)
 
-				// Eventuelle vorherige Fehlermeldung im Modal löschen
-				const msgEl = modal.querySelector('.ltb-modal-message');
-				if (msgEl) {
-					msgEl.style.display = 'none';
-					msgEl.textContent = '';
-				}
-
-				modal.style.display = 'flex';
-
-				// Focus auf erstes Texteingabefeld setzen (nicht auf den Close-Button)
-				const firstField = modal.querySelector('input[type="text"], input[type="email"], input[type="tel"], textarea');
-				if (firstField) {
-					firstField.focus();
-				}
-				console.log('Modal angezeigt');
-			} else {
-				console.error('Modal NICHT gefunden!');
-			}
-		},
-
-		hideCheckout: function() {
-			const modal = this.container.querySelector('.ltb-checkout-modal');
-			if (modal) {
-				modal.style.display = 'none';
-				// Form zurücksetzen
-				const form = modal.querySelector('#ltb-checkout-form');
-				if (form) {
-					form.reset();
-				}
-				// Focus zurück auf den Checkout-Button
-				if (this._checkoutTrigger && this._checkoutTrigger.focus) {
-					this._checkoutTrigger.focus();
-				}
-			}
-		},
+		// hideCheckout: nicht mehr benötigt (kein Modal)
 
 		handleCheckout: function(e) {
 			e.preventDefault();
@@ -1065,8 +1015,7 @@
 					form.reset();
 					this.cart = []; // Cart leeren
 					this.updateCart();
-					this.hideCheckout();
-					this.goToStep(5);
+					this.goToStep(6);
 				} else {
 					const errorMessage = data.data?.message || 'Fehler bei der Buchung.';
 					// Fehler IM Modal anzeigen, nicht dahinter
@@ -1092,14 +1041,13 @@
 
 		// Meldung INNERHALB des Checkout-Modals anzeigen
 		showModalMessage: function(type, message) {
-			const modal = this.container.querySelector('.ltb-checkout-modal');
-			if (!modal) { this.showMessage(type, message); return; }
-			const msgEl = modal.querySelector('.ltb-modal-message');
+			const step5 = this.container.querySelector('.ltb-step-5');
+			if (!step5) { this.showMessage(type, message); return; }
+			const msgEl = step5.querySelector('.ltb-step-message');
 			if (!msgEl) { this.showMessage(type, message); return; }
-			msgEl.className = 'ltb-modal-message ltb-modal-message-' + type;
+			msgEl.className = 'ltb-step-message ltb-step-message-' + type;
 			msgEl.textContent = message;
 			msgEl.style.display = 'block';
-			// Zum Fehler hinscrollen, falls Modal scrollbar ist
 			msgEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 		},
 
