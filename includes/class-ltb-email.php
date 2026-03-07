@@ -331,6 +331,7 @@ class LTB_Email {
 		);
 
 		$maps_url = get_option('ltb_confirmation_maps_url', '');
+		$confirmation_text = get_option('ltb_confirmation_text', '');
 
 		$date_formatted = date_i18n(get_option('date_format'), strtotime($reservation->booking_date));
 		// Deutsches 24-Stunden-Format verwenden
@@ -383,6 +384,10 @@ class LTB_Email {
 
 					<?php if (!empty($maps_url)): ?>
 					<p><a href="<?php echo esc_url($maps_url); ?>" class="button-maps">📍 <?php echo esc_html__('Anfahrt mit Google Maps', 'lasertagpro-buchung'); ?></a></p>
+					<?php endif; ?>
+
+					<?php if (!empty($confirmation_text)): ?>
+					<p><?php echo nl2br(esc_html($confirmation_text)); ?></p>
 					<?php endif; ?>
 
 					<p><?php echo esc_html__('Wir freuen uns auf Ihren Besuch!', 'lasertagpro-buchung'); ?></p>
