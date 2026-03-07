@@ -10,6 +10,32 @@ if (!defined('ABSPATH')) {
 class LTB_Email {
 
 	/**
+	 * wp_mail mit ob_start/ob_get_clean Wrapper (fängt SMTP-Debug-Output ab)
+	 *
+	 * @param string   $to      Empfänger
+	 * @param string   $subject Betreff
+	 * @param string   $message HTML-Body
+	 * @param array    $headers E-Mail-Header
+	 * @param callable $after   Optionaler Callback nach wp_mail (z.B. für Notifications)
+	 * @return bool
+	 */
+	private static function send_mail_buffered($to, $subject, $message, $headers, $after = null) {
+		ob_start();
+		$result = wp_mail($to, $subject, $message, $headers);
+		if (!$result) {
+			error_log('LTB wp_mail FEHLGESCHLAGEN: ' . $to);
+		}
+		if ($after) {
+			$after();
+		}
+		$output = ob_get_clean();
+		if (!empty($output)) {
+			error_log('LTB Email Output: ' . $output);
+		}
+		return $result;
+	}
+
+	/**
 	 * wp_mail_failed-Fehler ins Error-Log schreiben
 	 */
 	public static function log_mail_error($wp_error) {
@@ -46,24 +72,12 @@ class LTB_Email {
 			'From: ' . $from_name . ' <' . $from_email . '>',
 		);
 		
-		// SMTP-Debug-Output abfangen (neuen Buffer-Level hinzufügen, bestehende nicht zerstören)
-		ob_start();
-
-		$result = wp_mail($to, $subject, $message, $headers);
-		if (!$result) {
-			error_log('LTB wp_mail FEHLGESCHLAGEN: Reservierungsanfrage an ' . $to);
-		}
-
-		// *** ADMIN-BENACHRICHTIGUNG SENDEN ***
-		self::send_admin_notification($reservation);
-
-		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
-		LTB_Notifications::notify_new_reservation($reservation);
-
-		$output = ob_get_clean();
-		if (!empty($output)) {
-			error_log('LTB Email Output: ' . $output);
-		}
+		$result = self::send_mail_buffered($to, $subject, $message, $headers, function() use ($reservation) {
+			// *** ADMIN-BENACHRICHTIGUNG SENDEN ***
+			self::send_admin_notification($reservation);
+			// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
+			LTB_Notifications::notify_new_reservation($reservation);
+		});
 
 		return $result;
 	}
@@ -194,21 +208,10 @@ class LTB_Email {
 			'From: ' . $from_name . ' <' . $from_email . '>',
 		);
 		
-		// SMTP-Debug-Output abfangen (neuen Buffer-Level hinzufügen, bestehende nicht zerstören)
-		ob_start();
-
-		$result = wp_mail($to, $subject, $message, $headers);
-		if (!$result) {
-			error_log('LTB wp_mail FEHLGESCHLAGEN: Buchungsbestätigung an ' . $to);
-		}
-
-		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
-		LTB_Notifications::notify_confirmed_reservation($reservation);
-
-		$output = ob_get_clean();
-		if (!empty($output)) {
-			error_log('LTB Email Output: ' . $output);
-		}
+		$result = self::send_mail_buffered($to, $subject, $message, $headers, function() use ($reservation) {
+			// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
+			LTB_Notifications::notify_confirmed_reservation($reservation);
+		});
 
 		return $result;
 	}
@@ -239,23 +242,10 @@ class LTB_Email {
 			'From: ' . $from_name . ' <' . $from_email . '>',
 		);
 		
-		// SMTP-Debug-Output abfangen (neuen Buffer-Level hinzufügen, bestehende nicht zerstören)
-		ob_start();
-
-		$result = wp_mail($to, $subject, $message, $headers);
-		if (!$result) {
-			error_log('LTB wp_mail FEHLGESCHLAGEN: Stornierungsbestätigung an ' . $to);
-		}
-
-		// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
-		LTB_Notifications::notify_cancelled_reservation($reservation);
-
-		$output = ob_get_clean();
-		if (!empty($output)) {
-			error_log('LTB Email Output: ' . $output);
-		}
-
-		return $result;
+		return self::send_mail_buffered($to, $subject, $message, $headers, function() use ($reservation) {
+			// *** GOTIFY & TELEGRAM BENACHRICHTIGUNGEN SENDEN ***
+			LTB_Notifications::notify_cancelled_reservation($reservation);
+		});
 	}
 
 	/**

@@ -205,6 +205,26 @@ if (isset($_GET['settings-updated'])) {
 			</tr>
 		</table>
 
+		<h2><?php echo esc_html__('Bestätigungsseite', 'lasertagpro-buchung'); ?></h2>
+		<table class="form-table">
+			<tr>
+				<th><label for="ltb_confirmation_text"><?php echo esc_html__('Zusatztext', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<textarea id="ltb_confirmation_text" name="ltb_confirmation_text" rows="3" class="large-text"><?php echo esc_textarea(get_option('ltb_confirmation_text')); ?></textarea>
+					<p class="description"><?php echo esc_html__('Erscheint auf der Bestätigungsseite nach der Buchung (optional).', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="ltb_confirmation_maps_url"><?php echo esc_html__('Google Anfahrtsplan URL', 'lasertagpro-buchung'); ?></label></th>
+				<td>
+					<input type="url" id="ltb_confirmation_maps_url" name="ltb_confirmation_maps_url"
+						   value="<?php echo esc_attr(get_option('ltb_confirmation_maps_url')); ?>"
+						   class="regular-text" placeholder="https://maps.google.com/...">
+					<p class="description"><?php echo esc_html__('Link zu Google Maps Anfahrt. Erscheint als Button auf der Bestätigungsseite.', 'lasertagpro-buchung'); ?></p>
+				</td>
+			</tr>
+		</table>
+
 		<div class="notice notice-info">
 			<p>
 				<strong><?php echo esc_html__('Hinweis:', 'lasertagpro-buchung'); ?></strong>
