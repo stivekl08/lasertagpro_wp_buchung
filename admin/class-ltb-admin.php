@@ -65,15 +65,6 @@ class LTB_Admin {
 		register_setting('ltb_settings', 'ltb_dav_url');
 		register_setting('ltb_settings', 'ltb_dav_username');
 		register_setting('ltb_settings', 'ltb_dav_password');
-		// SMTP-Einstellungen
-		register_setting('ltb_settings', 'ltb_smtp_enabled');
-		register_setting('ltb_settings', 'ltb_smtp_host');
-		register_setting('ltb_settings', 'ltb_smtp_port', array('sanitize_callback' => 'absint'));
-		register_setting('ltb_settings', 'ltb_smtp_encryption');
-		register_setting('ltb_settings', 'ltb_smtp_username');
-		register_setting('ltb_settings', 'ltb_smtp_password');
-		register_setting('ltb_settings', 'ltb_email_from', array('sanitize_callback' => 'sanitize_email'));
-		register_setting('ltb_settings', 'ltb_email_from_name', array('sanitize_callback' => 'sanitize_text_field'));
 		register_setting('ltb_settings', 'ltb_start_hour');
 		register_setting('ltb_settings', 'ltb_end_hour');
 		

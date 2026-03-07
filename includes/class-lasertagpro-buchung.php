@@ -87,36 +87,7 @@ class LaserTagPro_Buchung {
 		add_action('wp_enqueue_scripts', array($this, 'enqueue_public_assets'));
 		add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
 		add_action('init', array($this, 'start_session'));
-		add_action('phpmailer_init', array($this, 'configure_smtp'));
 		$this->load_textdomain();
-	}
-
-	/**
-	 * PHPMailer mit SMTP-Einstellungen konfigurieren (wenn aktiviert)
-	 */
-	public function configure_smtp($phpmailer) {
-		if (!get_option('ltb_smtp_enabled')) {
-			return;
-		}
-
-		$host       = get_option('ltb_smtp_host', '');
-		$port       = absint(get_option('ltb_smtp_port', 587));
-		$encryption = get_option('ltb_smtp_encryption', 'tls');
-		$username   = get_option('ltb_smtp_username', '');
-		$password   = get_option('ltb_smtp_password', '');
-
-		if (empty($host) || empty($username)) {
-			error_log('LTB SMTP: aktiviert, aber Host oder Benutzername fehlen.');
-			return;
-		}
-
-		$phpmailer->isSMTP();
-		$phpmailer->Host       = $host;
-		$phpmailer->Port       = $port;
-		$phpmailer->SMTPAuth   = !empty($username);
-		$phpmailer->Username   = $username;
-		$phpmailer->Password   = $password;
-		$phpmailer->SMTPSecure = $encryption; // 'tls', 'ssl', oder ''
 	}
 	
 	/**
